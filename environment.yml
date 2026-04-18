@@ -1,6 +1,7 @@
 name: afs_cortex
 channels:
   - snowflake
+  - conda-forge
 dependencies:
   - snowflake-ml-python>=1.5.0
   - snowflake-snowpark-python

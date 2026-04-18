@@ -22,9 +22,23 @@ SNOWFLAKE_WAREHOUSE = os.environ.get("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH")
 AFS_STAGE = "AUDITED_FINANCIALS.COMMON.AFS_STAGE"
 
 # ---- prompts ----
-# In Snowflake Notebooks, artifacts are uploaded alongside the notebook.
-# The prompts/ directory is in the notebook's working directory.
-PROMPTS = Path(__file__).resolve().parents[3] / "prompts"
+# Resolve prompts/ directory using multiple fallback strategies:
+#   1. Relative to this file (works in workspace layout: src/afs/config.py -> ../../prompts)
+#   2. Walk up from this file until prompts/ is found
+#   3. Current working directory (Snowflake Notebooks set CWD to artifact root)
+def _find_prompts_dir() -> Path:
+    candidates = [
+        Path(__file__).resolve().parents[2] / "prompts",
+        Path(__file__).resolve().parents[3] / "prompts",
+        Path.cwd() / "prompts",
+        Path.cwd().parent / "prompts",
+    ]
+    for p in candidates:
+        if p.is_dir():
+            return p
+    return candidates[0]
+
+PROMPTS = _find_prompts_dir()
 
 # ---- extraction thresholds ----
 MIN_NUMERIC_CONFIDENCE = 0.85

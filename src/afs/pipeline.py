@@ -27,7 +27,14 @@ from .normalize import write_statement, write_stats
 from .org_registry import find_existing, insert_org, new_org_id, suggest_org_code
 from .pdf_ingest import pages_are_empty
 from .schemas import IdentifyResult
-from .snowflake_io import ensure_org_schema, filing_already_loaded, get_connection
+from .snowflake_io import (
+    ensure_org_schema,
+    filing_already_loaded,
+    get_completed_stages,
+    get_connection,
+    mark_stage_completed,
+    reset_stages,
+)
 
 log = logging.getLogger("afs.pipeline")
 
@@ -64,6 +71,7 @@ def process_filing(
     *,
     org_hint: dict | None = None,
     reparse: bool = False,
+    staging_id: str | None = None,
 ) -> dict[str, Any]:
     """Process one filing from pre-extracted page texts.
 
@@ -75,6 +83,7 @@ def process_filing(
         total_pages: Total page count
         org_hint:    {"org_code": "...", "legal_name": "..."} for new orgs
         reparse:     Re-extract even if filing already loaded
+        staging_id:  STAGING_ID for checkpoint tracking (enables resume on retry)
     """
     init(session)
 
@@ -90,6 +99,13 @@ def process_filing(
     try:
         cur = conn.cursor()
         try:
+            done = get_completed_stages(cur, staging_id) if staging_id else set()
+
+            def _checkpoint(stage: str) -> None:
+                if staging_id:
+                    mark_stage_completed(cur, staging_id, stage)
+                    conn.commit()
+
             # ---- 1. identify ----
             ident = identify_filing(page_texts)
             report["identify"] = ident.model_dump()
@@ -110,7 +126,6 @@ def process_filing(
             groups = group_by_label(classifications)
             report["stages"]["classify"] = {k: len(v) for k, v in groups.items()}
 
-            # ---- 4a. warn on empty-text pages ----
             all_pages = list(range(1, total_pages + 1))
             if pages_are_empty(page_texts, all_pages):
                 report["stages"]["warning"] = "all_pages_empty_text_possible_scanned_pdf"
@@ -118,105 +133,131 @@ def process_filing(
 
             fy_labels = ident.years_shown
             fye_by_year = ident.fye_by_year
-
-            # ---- 5. record filing row ----
             primary_fy = fy_labels[0] if fy_labels else None
             primary_fye = fye_by_year.get(primary_fy) if primary_fy else None
-            cur.execute(
-                """
-                INSERT INTO COMMON.FILINGS
-                  (FILING_ID, ORG_ID, FISCAL_YEAR_END, FY_LABEL, YEARS_PRESENT, AUDIT_FIRM,
-                   AUDIT_OPINION, SOURCE_FILENAME, PAGE_COUNT, EXTRACTOR_VERSION, EXTRACTION_BLOB)
-                SELECT %s,%s,%s,%s,PARSE_JSON(%s),%s,%s,%s,%s,%s,PARSE_JSON(%s)
-                """,
-                (filing_id, org["ORG_ID"], primary_fye, primary_fy,
-                 _json.dumps(fy_labels), ident.audit_firm, ident.audit_opinion,
-                 filename, total_pages, C.EXTRACTOR_VERSION,
-                 _json.dumps({"identify": ident.model_dump(),
-                              "classify": [c.model_dump() for c in classifications]})),
-            )
 
-            # ---- 6. RAW_FILING_JSON ----
-            cur.execute(
-                f"""
-                INSERT INTO {org["ORG_CODE"]}.RAW_FILING_JSON
-                  (FILING_ID, SOURCE_FILENAME, EXTRACTOR_VERSION, BLOB)
-                SELECT %s,%s,%s,PARSE_JSON(%s)
-                """,
-                (filing_id, filename, C.EXTRACTOR_VERSION,
-                 _json.dumps({"identify": ident.model_dump(),
-                              "classify": [c.model_dump() for c in classifications]})),
-            )
-
-            # ---- 7. primary statements ----
-            stmt_stats: dict[str, Any] = {}
-            for stmt_code in ("is", "bs", "cf", "equity"):
-                pages = groups.get(stmt_code, [])
-                if not pages:
-                    continue
-                extract = extract_statement(page_texts, stmt_code, pages, fy_labels)
-                stmt_stats[stmt_code] = write_statement(
-                    cur, org_id=org["ORG_ID"], org_code=org["ORG_CODE"],
-                    filing_id=filing_id, fye_by_year=fye_by_year, extract=extract,
+            # ---- 5. record filing row ----
+            if "filing_row" not in done:
+                cur.execute(
+                    """
+                    INSERT INTO COMMON.FILINGS
+                      (FILING_ID, ORG_ID, FISCAL_YEAR_END, FY_LABEL, YEARS_PRESENT, AUDIT_FIRM,
+                       AUDIT_OPINION, SOURCE_FILENAME, PAGE_COUNT, EXTRACTOR_VERSION, EXTRACTION_BLOB)
+                    SELECT %s,%s,%s,%s,PARSE_JSON(%s),%s,%s,%s,%s,%s,PARSE_JSON(%s)
+                    """,
+                    (filing_id, org["ORG_ID"], primary_fye, primary_fy,
+                     _json.dumps(fy_labels), ident.audit_firm, ident.audit_opinion,
+                     filename, total_pages, C.EXTRACTOR_VERSION,
+                     _json.dumps({"identify": ident.model_dump(),
+                                  "classify": [c.model_dump() for c in classifications]})),
                 )
-            report["stages"]["statements"] = stmt_stats
+                cur.execute(
+                    f"""
+                    INSERT INTO {org["ORG_CODE"]}.RAW_FILING_JSON
+                      (FILING_ID, SOURCE_FILENAME, EXTRACTOR_VERSION, BLOB)
+                    SELECT %s,%s,%s,PARSE_JSON(%s)
+                    """,
+                    (filing_id, filename, C.EXTRACTOR_VERSION,
+                     _json.dumps({"identify": ident.model_dump(),
+                                  "classify": [c.model_dump() for c in classifications]})),
+                )
+                _checkpoint("filing_row")
+            else:
+                log.info("[resume] skipping filing_row (already completed)")
 
-            # ---- 8. IS exhibits ----
-            is_exh_rows = 0
-            for page_run in _contiguous_runs(groups.get("is_exhibit", [])):
-                payload = extract_is_exhibit(page_texts, page_run, fy_labels)
-                is_exh_rows += write_is_exhibit(cur, org["ORG_CODE"], filing_id, fye_by_year, payload)
-            report["stages"]["is_exhibit_rows"] = is_exh_rows
-
-            # ---- 9. BS exhibits ----
-            bs_exh_rows = 0
-            for page_run in _contiguous_runs(groups.get("bs_exhibit", [])):
-                payload = extract_bs_exhibit(page_texts, page_run, fy_labels)
-                bs_exh_rows += write_bs_exhibit(cur, org["ORG_CODE"], filing_id, fye_by_year, payload)
-            report["stages"]["bs_exhibit_rows"] = bs_exh_rows
-
-            # ---- 10. notes ----
-            note_count = 0
-            note_errors: list[str] = []
-            for page_run in _notes_grouped(classifications):
-                try:
-                    note = extract_note(page_texts, page_run, fy_labels)
-                    write_notes(cur, org["ORG_CODE"], filing_id, note.model_dump())
-                    note_count += 1
-                except Exception as e:
-                    note_errors.append(f"pages {page_run}: {type(e).__name__}: {e}")
-                    log.warning("note extract failed for pages %s: %s", page_run, e)
-            report["stages"]["notes"] = note_count
-            if note_errors:
-                report["stages"]["note_errors"] = note_errors
-
-            # ---- 11. stats ----
-            stat_pages = sorted(set(groups.get("stats", []) + groups.get("mdna", [])))
-            stat_stats = {"native_rows": 0, "common_rows": 0, "review_rows": 0}
-            if stat_pages:
-                try:
-                    payload = extract_stats(page_texts, stat_pages, fy_labels)
-                    stat_stats = write_stats(
+            # ---- 6. primary statements ----
+            if "statements" not in done:
+                stmt_stats: dict[str, Any] = {}
+                for stmt_code in ("is", "bs", "cf", "equity"):
+                    pages = groups.get(stmt_code, [])
+                    if not pages:
+                        continue
+                    extract = extract_statement(page_texts, stmt_code, pages, fy_labels)
+                    stmt_stats[stmt_code] = write_statement(
                         cur, org_id=org["ORG_ID"], org_code=org["ORG_CODE"],
-                        filing_id=filing_id, fye_by_year=fye_by_year,
-                        stat_rows=payload.get("rows", []),
+                        filing_id=filing_id, fye_by_year=fye_by_year, extract=extract,
                     )
-                except Exception as e:
-                    log.warning("stats stage failed: %s", e)
-                    report["stages"]["stats_error"] = f"{type(e).__name__}: {e}"
-            report["stages"]["stats"] = stat_stats
+                report["stages"]["statements"] = stmt_stats
+                _checkpoint("statements")
+            else:
+                log.info("[resume] skipping statements (already completed)")
 
-            # ---- 12. insights ----
-            try:
-                ratios = compute_ratios(cur, org["ORG_ID"])
-                trends = compute_trends(ratios)
-                findings = synthesize_findings(ratios, trends, org["ORG_CODE"])
-                n_findings = write_findings(cur, org["ORG_ID"], filing_id, primary_fy, findings)
-                report["stages"]["findings"] = n_findings
-            except Exception as e:
-                log.warning("insights stage failed: %s", e)
-                report["stages"]["findings"] = 0
-                report["stages"]["insights_error"] = f"{type(e).__name__}: {e}"
+            # ---- 7. IS exhibits ----
+            if "is_exhibits" not in done:
+                is_exh_rows = 0
+                for page_run in _contiguous_runs(groups.get("is_exhibit", [])):
+                    payload = extract_is_exhibit(page_texts, page_run, fy_labels)
+                    is_exh_rows += write_is_exhibit(cur, org["ORG_CODE"], filing_id, fye_by_year, payload)
+                report["stages"]["is_exhibit_rows"] = is_exh_rows
+                _checkpoint("is_exhibits")
+            else:
+                log.info("[resume] skipping is_exhibits (already completed)")
+
+            # ---- 8. BS exhibits ----
+            if "bs_exhibits" not in done:
+                bs_exh_rows = 0
+                for page_run in _contiguous_runs(groups.get("bs_exhibit", [])):
+                    payload = extract_bs_exhibit(page_texts, page_run, fy_labels)
+                    bs_exh_rows += write_bs_exhibit(cur, org["ORG_CODE"], filing_id, fye_by_year, payload)
+                report["stages"]["bs_exhibit_rows"] = bs_exh_rows
+                _checkpoint("bs_exhibits")
+            else:
+                log.info("[resume] skipping bs_exhibits (already completed)")
+
+            # ---- 9. notes ----
+            if "notes" not in done:
+                note_count = 0
+                note_errors: list[str] = []
+                for page_run in _notes_grouped(classifications):
+                    try:
+                        note = extract_note(page_texts, page_run, fy_labels)
+                        write_notes(cur, org["ORG_CODE"], filing_id, note.model_dump())
+                        note_count += 1
+                    except Exception as e:
+                        note_errors.append(f"pages {page_run}: {type(e).__name__}: {e}")
+                        log.warning("note extract failed for pages %s: %s", page_run, e)
+                report["stages"]["notes"] = note_count
+                if note_errors:
+                    report["stages"]["note_errors"] = note_errors
+                _checkpoint("notes")
+            else:
+                log.info("[resume] skipping notes (already completed)")
+
+            # ---- 10. stats ----
+            if "stats" not in done:
+                stat_pages = sorted(set(groups.get("stats", []) + groups.get("mdna", [])))
+                stat_stats = {"native_rows": 0, "common_rows": 0, "review_rows": 0}
+                if stat_pages:
+                    try:
+                        payload = extract_stats(page_texts, stat_pages, fy_labels)
+                        stat_stats = write_stats(
+                            cur, org_id=org["ORG_ID"], org_code=org["ORG_CODE"],
+                            filing_id=filing_id, fye_by_year=fye_by_year,
+                            stat_rows=payload.get("rows", []),
+                        )
+                    except Exception as e:
+                        log.warning("stats stage failed: %s", e)
+                        report["stages"]["stats_error"] = f"{type(e).__name__}: {e}"
+                report["stages"]["stats"] = stat_stats
+                _checkpoint("stats")
+            else:
+                log.info("[resume] skipping stats (already completed)")
+
+            # ---- 11. insights ----
+            if "insights" not in done:
+                try:
+                    ratios = compute_ratios(cur, org["ORG_ID"])
+                    trends = compute_trends(ratios)
+                    findings = synthesize_findings(ratios, trends, org["ORG_CODE"])
+                    n_findings = write_findings(cur, org["ORG_ID"], filing_id, primary_fy, findings)
+                    report["stages"]["findings"] = n_findings
+                except Exception as e:
+                    log.warning("insights stage failed: %s", e)
+                    report["stages"]["findings"] = 0
+                    report["stages"]["insights_error"] = f"{type(e).__name__}: {e}"
+                _checkpoint("insights")
+            else:
+                log.info("[resume] skipping insights (already completed)")
 
             conn.commit()
         finally:

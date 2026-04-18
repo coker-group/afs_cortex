@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS PDF_STAGING (
     TOTAL_PAGES     NUMBER      NOT NULL,
     PAGE_TEXTS      VARIANT     NOT NULL,               -- [{page: N, text: "..."}]
     EXTRACTED_AT    TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
-    STATUS          STRING      DEFAULT 'pending'       -- pending | processing | done | failed
+    STATUS          STRING      DEFAULT 'pending',      -- pending | processing | done | failed
+    STAGES_COMPLETED VARIANT    DEFAULT PARSE_JSON('[]') -- list of completed stage names for resume
 );
 
 -- -------------------------------------------------------------

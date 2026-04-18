@@ -4,6 +4,8 @@ from __future__ import annotations
 import json as _json
 from typing import Any, Iterable
 
+from .snowflake_io import _validate_identifier
+
 
 def write_is_exhibit(cur, org_code: str, filing_id: str, fye_by_year: dict[str, str], payload: dict[str, Any]) -> int:
     rows = payload.get("rows") or []
@@ -134,22 +136,24 @@ def write_bs_exhibit(cur, org_code: str, filing_id: str, fye_by_year: dict[str, 
 
 
 def _bulk_by_table(cur, org_code: str, rows: Iterable[dict]) -> None:
+    _validate_identifier(org_code, "org_code")
     by_table: dict[str, list[dict]] = {}
     for r in rows:
         by_table.setdefault(r["table"], []).append(r["row"])
     for table, batch in by_table.items():
         if not batch:
             continue
+        _validate_identifier(table, "table name")
         cols = list(batch[0].keys())
+        for c in cols:
+            _validate_identifier(c, "column name")
         placeholders = ",".join(["%s"] * len(cols))
         sql = f"INSERT INTO {org_code}.{table} ({','.join(cols)}) VALUES ({placeholders})"
         cur.executemany(sql, [tuple(r.get(c) for c in cols) for r in batch])
 
 
 def write_notes(cur, org_code: str, filing_id: str, note: dict[str, Any]) -> None:
-    # NOTES primary key is (FILING_ID, NOTE_NUM). If the model didn't supply a number
-    # (common for multi-page note continuations or unnumbered schedules), synthesize a
-    # stable key from the page range so MERGE doesn't collide across unnumbered notes.
+    _validate_identifier(org_code, "org_code")
     note_num = note.get("note_num")
     if not note_num:
         start = note.get("source_page_start")

@@ -3,15 +3,38 @@
 Cortex edition: `get_connection(session)` extracts the underlying
 snowflake.connector.Connection from a live Snowpark session so all
 cursor-based code runs unchanged inside Snowflake Notebooks.
+
+Connection strategy:
+  - The Snowpark ``session`` is used for Cortex LLM calls
+    (``snowflake.cortex.Complete``) and notebook-level Snowpark DataFrame
+    operations (status updates, display queries).
+  - A raw ``snowflake.connector`` cursor is used by library modules
+    (``org_registry``, ``common_map``, ``normalize``, ``insights``,
+    ``exhibits``) for parameterised DML. The cursor is obtained from the
+    same underlying connection that backs the Snowpark session, so they
+    share the same transaction context.
+  - ``cursor_from_session(session)`` is the preferred entry-point for
+    notebooks and callers that need a cursor with automatic cleanup.
 """
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Iterable, Mapping, Sequence
 
 import snowflake.connector
+from contextlib import contextmanager
 
 from . import config as C
+
+
+_SAFE_IDENT_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]{0,254}$')
+
+
+def _validate_identifier(name: str, label: str = "identifier") -> str:
+    if not _SAFE_IDENT_RE.match(name):
+        raise ValueError(f"Unsafe Snowflake {label}: {name!r}")
+    return name
 
 
 def get_connection(session=None):
@@ -27,23 +50,59 @@ def get_connection(session=None):
         # This is a stable internal pattern used widely in Snowflake community.
         return session._conn._conn
 
-    # Local / CI fallback — requires SNOWFLAKE_* env vars or config.toml
+    # Local / CI fallback — requires SNOWFLAKE_* env vars
     from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives.serialization import load_pem_private_key
     import os
 
-    key_path = os.environ.get("SNOWFLAKE_PRIVATE_KEY_PATH", r"C:\snowflake_keys\snowflake_key.p8")
-    passphrase = os.environ.get("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE", "coker2026").encode()
+    key_path = os.environ.get("SNOWFLAKE_PRIVATE_KEY_PATH")
+    if not key_path:
+        raise RuntimeError(
+            "SNOWFLAKE_PRIVATE_KEY_PATH env var is required for local connections. "
+            "Set SNOWFLAKE_PRIVATE_KEY_PATH and optionally SNOWFLAKE_PRIVATE_KEY_PASSPHRASE."
+        )
+    passphrase_str = os.environ.get("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE")
+    passphrase = passphrase_str.encode() if passphrase_str else None
     with open(key_path, "rb") as f:
         pkey = load_pem_private_key(f.read(), password=passphrase, backend=default_backend())
+    account = os.environ.get("SNOWFLAKE_ACCOUNT")
+    user = os.environ.get("SNOWFLAKE_USER")
+    if not account or not user:
+        raise RuntimeError("SNOWFLAKE_ACCOUNT and SNOWFLAKE_USER env vars are required for local connections.")
     return snowflake.connector.connect(
-        account=os.environ.get("SNOWFLAKE_ACCOUNT", C.SNOWFLAKE_DATABASE),
-        user=os.environ.get("SNOWFLAKE_USER", "NATHANCOHEN"),
+        account=account,
+        user=user,
         private_key=pkey,
         warehouse=C.SNOWFLAKE_WAREHOUSE,
         database=C.SNOWFLAKE_DATABASE,
         autocommit=False,
     )
+
+
+@contextmanager
+def cursor_from_session(session, *, commit_on_exit: bool = True):
+    """Context manager yielding a raw cursor from a Snowpark session.
+
+    Usage::
+
+        with cursor_from_session(session) as cur:
+            cur.execute('SELECT ...')
+
+    On clean exit the connection is committed (unless ``commit_on_exit``
+    is False). On exception the connection is rolled back. The cursor is
+    always closed.
+    """
+    conn = get_connection(session)
+    cur = conn.cursor()
+    try:
+        yield cur
+        if commit_on_exit:
+            conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
 
 
 # ---------- per-org schema DDL ----------
@@ -148,6 +207,7 @@ CREATE TABLE IF NOT EXISTS STATS (
 
 
 def ensure_org_schema(cur, org_code: str) -> None:
+    _validate_identifier(org_code, "org_code")
     cur.execute(f"USE DATABASE {C.SNOWFLAKE_DATABASE}")
     for stmt in _PER_ORG_DDL.format(schema=org_code).split(";"):
         s = stmt.strip()
@@ -163,7 +223,11 @@ def filing_already_loaded(cur, filing_id: str) -> bool:
 def insert_rows(cur, fq_table: str, rows: Sequence[Mapping[str, Any]]) -> int:
     if not rows:
         return 0
+    for part in fq_table.split("."):
+        _validate_identifier(part, "table path component")
     cols = list(rows[0].keys())
+    for c in cols:
+        _validate_identifier(c, "column name")
     placeholders = ",".join(["%s"] * len(cols))
     sql = f"INSERT INTO {fq_table} ({','.join(cols)}) VALUES ({placeholders})"
     cur.executemany(sql, [tuple(r.get(c) for c in cols) for r in rows])
@@ -171,8 +235,12 @@ def insert_rows(cur, fq_table: str, rows: Sequence[Mapping[str, Any]]) -> int:
 
 
 def insert_variant_row(cur, fq_table: str, row: Mapping[str, Any], variant_cols: Iterable[str]) -> None:
+    for part in fq_table.split("."):
+        _validate_identifier(part, "table path component")
     variant_cols = set(variant_cols)
     cols = list(row.keys())
+    for c in cols:
+        _validate_identifier(c, "column name")
     values_clause, params = [], []
     for c in cols:
         if c in variant_cols:
@@ -185,10 +253,52 @@ def insert_variant_row(cur, fq_table: str, row: Mapping[str, Any], variant_cols:
     cur.execute(sql, params)
 
 
+def get_completed_stages(cur, staging_id: str) -> set[str]:
+    cur.execute(
+        "SELECT STAGES_COMPLETED FROM COMMON.PDF_STAGING WHERE STAGING_ID = %s",
+        (staging_id,),
+    )
+    row = cur.fetchone()
+    if not row or row[0] is None:
+        return set()
+    raw = row[0]
+    if isinstance(raw, str):
+        import json as _json
+        raw = _json.loads(raw)
+    return set(raw) if raw else set()
+
+
+def mark_stage_completed(cur, staging_id: str, stage_name: str) -> None:
+    cur.execute(
+        """
+        UPDATE COMMON.PDF_STAGING
+           SET STAGES_COMPLETED = ARRAY_APPEND(
+               COALESCE(STAGES_COMPLETED, PARSE_JSON('[]')),
+               %s::VARIANT
+           )
+         WHERE STAGING_ID = %s
+        """,
+        (stage_name, staging_id),
+    )
+
+
+def reset_stages(cur, staging_id: str) -> None:
+    cur.execute(
+        "UPDATE COMMON.PDF_STAGING SET STAGES_COMPLETED = PARSE_JSON('[]') WHERE STAGING_ID = %s",
+        (staging_id,),
+    )
+
+
 def merge_rows(cur, fq_table, rows, key_cols, update_cols=None) -> int:
     if not rows:
         return 0
+    for part in fq_table.split("."):
+        _validate_identifier(part, "table path component")
     cols = list(rows[0].keys())
+    for c in cols:
+        _validate_identifier(c, "column name")
+    for k in key_cols:
+        _validate_identifier(k, "key column")
     update_cols = update_cols or [c for c in cols if c not in key_cols]
     key_match = " AND ".join(f"t.{k}=s.{k}" for k in key_cols)
     update_set = ", ".join(f"t.{c}=s.{c}" for c in update_cols)
