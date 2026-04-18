@@ -1,0 +1,107 @@
+CONCEPT,STATEMENT,CATEGORY,DEFINITION,SIGN_CONVENTION,UOM,PARENT_CONCEPT
+net_patient_service_revenue,income_statement,revenue,Net patient service revenue including 340B and reserves,credit,usd,total_operating_revenue
+premium_revenue,income_statement,revenue,Capitated/insurance premium revenue where the org bears insurance risk,credit,usd,total_operating_revenue
+other_operating_revenue,income_statement,revenue,Cafeteria/rental/grants/research/other operating revenue,credit,usd,total_operating_revenue
+supplemental_payments,income_statement,revenue,DSH/GME/IME/provider-tax/state-directed payments where separately disclosed,credit,usd,total_operating_revenue
+total_operating_revenue,income_statement,revenue,Total operating revenue,credit,usd,
+salaries_and_wages,income_statement,opex,Salaries and wages expense,debit,usd,total_salaries_and_benefits
+employee_benefits,income_statement,opex,Employee benefits expense including pension service cost,debit,usd,total_salaries_and_benefits
+total_salaries_and_benefits,income_statement,opex,Total salaries wages and benefits,debit,usd,total_operating_expense
+supplies,income_statement,opex,Medical and other supplies,debit,usd,total_operating_expense
+purchased_services,income_statement,opex,Purchased services and professional fees,debit,usd,total_operating_expense
+medical_claims_expense,income_statement,opex,Claims expense for risk-bearing entities,debit,usd,total_operating_expense
+pharmaceuticals,income_statement,opex,Drug/pharmaceutical cost where separately reported,debit,usd,total_operating_expense
+utilities,income_statement,opex,Utilities,debit,usd,total_operating_expense
+insurance_expense,income_statement,opex,Insurance expense (non-medical),debit,usd,total_operating_expense
+other_operating_expense,income_statement,opex,Other operating expense,debit,usd,total_operating_expense
+depreciation_amortization,income_statement,opex,Depreciation and amortization,debit,usd,total_operating_expense
+interest_expense,income_statement,opex,Interest expense (operating presentation),debit,usd,total_operating_expense
+provider_tax_expense,income_statement,opex,Provider tax / hospital assessment expense,debit,usd,total_operating_expense
+total_operating_expense,income_statement,opex,Total operating expenses,debit,usd,
+operating_income,income_statement,subtotal,Operating income (loss),signed,usd,
+investment_return,income_statement,non_operating,Investment income realized and unrealized,signed,usd,total_non_operating
+contributions_unrestricted,income_statement,non_operating,Unrestricted contributions,credit,usd,total_non_operating
+loss_on_extinguishment_of_debt,income_statement,non_operating,Loss on early retirement/extinguishment of debt,debit,usd,total_non_operating
+derivative_mtm,income_statement,non_operating,Change in fair value of derivatives/swaps,signed,usd,total_non_operating
+other_non_operating,income_statement,non_operating,Other non-operating gains/losses,signed,usd,total_non_operating
+pension_nonservice_cost,income_statement,non_operating,Pension cost components other than net periodic service cost,signed,usd,total_non_operating
+total_non_operating,income_statement,non_operating,Total non-operating gains/losses,signed,usd,
+excess_revenue_over_expense,income_statement,subtotal,Excess of revenues over expenses (bottom line before OCI),signed,usd,
+change_in_net_assets,income_statement,subtotal,Change in net assets (with donor restrictions),signed,usd,
+cash_and_equivalents,balance_sheet,asset_current,Cash and cash equivalents,debit,usd,total_current_assets
+short_term_investments,balance_sheet,asset_current,Short-term investments,debit,usd,total_current_assets
+patient_ar_net,balance_sheet,asset_current,Patient accounts receivable net of estimated contractuals,debit,usd,total_current_assets
+inventories,balance_sheet,asset_current,Inventories,debit,usd,total_current_assets
+prepaid_and_other_current,balance_sheet,asset_current,Prepaid expenses and other current assets,debit,usd,total_current_assets
+assets_limited_use_current,balance_sheet,asset_current,Current portion of assets limited as to use,debit,usd,total_current_assets
+total_current_assets,balance_sheet,asset,Total current assets,debit,usd,total_assets
+assets_limited_use_noncurrent,balance_sheet,asset,Noncurrent portion of assets limited as to use,debit,usd,total_assets
+long_term_investments,balance_sheet,asset,Long-term investments / board-designated funds,debit,usd,total_assets
+ppe_gross,balance_sheet,asset,Property plant and equipment gross,debit,usd,ppe_net
+accumulated_depreciation,balance_sheet,asset,Accumulated depreciation (presented as negative),debit,usd,ppe_net
+ppe_net,balance_sheet,asset,Net property plant and equipment,debit,usd,total_assets
+goodwill_and_intangibles,balance_sheet,asset,Goodwill and other intangible assets,debit,usd,total_assets
+right_of_use_assets,balance_sheet,asset,Operating and finance lease right-of-use assets,debit,usd,total_assets
+other_assets,balance_sheet,asset,Other assets,debit,usd,total_assets
+total_assets,balance_sheet,asset,Total assets,debit,usd,
+accounts_payable,balance_sheet,liability_current,Accounts payable,credit,usd,total_current_liabilities
+accrued_salaries_and_benefits,balance_sheet,liability_current,Accrued compensation and benefits,credit,usd,total_current_liabilities
+estimated_third_party_payor_liability,balance_sheet,liability_current,Estimated third-party payor settlements,credit,usd,total_current_liabilities
+current_portion_long_term_debt,balance_sheet,liability_current,Current portion of long-term debt and finance leases,credit,usd,total_current_liabilities
+other_current_liabilities,balance_sheet,liability_current,Other current liabilities,credit,usd,total_current_liabilities
+total_current_liabilities,balance_sheet,liability,Total current liabilities,credit,usd,total_liabilities
+long_term_debt,balance_sheet,liability,Long-term debt net of current portion,credit,usd,total_liabilities
+operating_lease_liability_lt,balance_sheet,liability,Long-term operating lease liability,credit,usd,total_liabilities
+pension_and_postretirement_liability,balance_sheet,liability,Pension and OPEB liability,credit,usd,total_liabilities
+self_insurance_reserves,balance_sheet,liability,Self-insurance and malpractice reserves,credit,usd,total_liabilities
+other_long_term_liabilities,balance_sheet,liability,Other long-term liabilities,credit,usd,total_liabilities
+total_liabilities,balance_sheet,liability,Total liabilities,credit,usd,
+net_assets_without_donor_restrictions,balance_sheet,equity,Net assets without donor restrictions (unrestricted),credit,usd,total_net_assets
+net_assets_with_donor_restrictions,balance_sheet,equity,Net assets with donor restrictions,credit,usd,total_net_assets
+noncontrolling_interests,balance_sheet,equity,Noncontrolling interests,credit,usd,total_net_assets
+total_net_assets,balance_sheet,equity,Total net assets,credit,usd,
+total_liabilities_and_net_assets,balance_sheet,total,Total liabilities and net assets,credit,usd,
+cf_change_in_net_assets,cash_flow,operating,Change in net assets (starting point),signed,usd,cf_operating
+cf_depreciation_amortization,cash_flow,operating,Depreciation and amortization addback,signed,usd,cf_operating
+cf_working_capital_changes,cash_flow,operating,Net change in working capital,signed,usd,cf_operating
+cf_operating,cash_flow,operating,Net cash provided by operating activities,signed,usd,
+cf_capex,cash_flow,investing,Purchase of property and equipment,signed,usd,cf_investing
+cf_investment_purchases,cash_flow,investing,Purchase of investments,signed,usd,cf_investing
+cf_investment_sales,cash_flow,investing,Sale/maturity of investments,signed,usd,cf_investing
+cf_acquisitions,cash_flow,investing,Business acquisitions net of cash acquired,signed,usd,cf_investing
+cf_investing,cash_flow,investing,Net cash used in investing activities,signed,usd,
+cf_debt_issued,cash_flow,financing,Proceeds from issuance of debt,signed,usd,cf_financing
+cf_debt_repaid,cash_flow,financing,Repayment of debt,signed,usd,cf_financing
+cf_financing,cash_flow,financing,Net cash from financing activities,signed,usd,
+cf_net_change_in_cash,cash_flow,total,Net change in cash,signed,usd,
+staffed_beds,stat,volume,Staffed/licensed beds,signed,count,
+admissions,stat,volume,Inpatient admissions,signed,count,
+adjusted_admissions,stat,volume,Adjusted admissions (inpatient + outpatient equivalent),signed,count,
+patient_days,stat,volume,Inpatient patient days,signed,count,
+adjusted_patient_days,stat,volume,Adjusted patient days,signed,count,
+er_visits,stat,volume,Emergency department visits,signed,count,
+outpatient_visits,stat,volume,Outpatient visits,signed,count,
+clinic_visits,stat,volume,Physician clinic visits,signed,count,
+surgeries_inpatient,stat,volume,Inpatient surgical cases,signed,count,
+surgeries_outpatient,stat,volume,Outpatient surgical cases,signed,count,
+fte_total,stat,workforce,Total FTEs,signed,count,
+fte_per_aoc,stat,workforce,FTEs per adjusted occupied bed,signed,ratio,
+operating_margin,stat,ratio,Operating income / total operating revenue,signed,pct,
+ebida_margin,stat,ratio,(Operating income + D&A) / total operating revenue,signed,pct,
+excess_margin,stat,ratio,Excess of revenues over expenses / total revenue,signed,pct,
+days_cash_on_hand,stat,ratio,(Cash + STI + board-designated) / (daily operating expense - D&A),signed,days,
+days_in_ar,stat,ratio,Net patient AR / (net patient service revenue / 365),signed,days,
+cushion_ratio,stat,ratio,Unrestricted cash / annual debt service,signed,ratio,
+debt_service_coverage,stat,ratio,(Change in net assets + interest + D&A) / debt service,signed,ratio,
+debt_to_capitalization,stat,ratio,LT debt / (LT debt + unrestricted net assets),signed,pct,
+age_of_plant,stat,ratio,Accumulated depreciation / annual depreciation,signed,years,
+average_age_of_ar_days,stat,ratio,Average age of accounts receivable in days,signed,days,
+salaries_pct_of_revenue,stat,ratio,Salaries and benefits / total operating revenue,signed,pct,
+supplies_pct_of_revenue,stat,ratio,Supplies / total operating revenue,signed,pct,
+purchased_services_pct_of_opex,stat,ratio,Purchased services / total operating expense,signed,pct,
+capex_pct_of_depreciation,stat,ratio,Capex / depreciation (reinvestment ratio),signed,ratio,
+payer_mix_medicare,stat,payer_mix,Medicare % of gross revenue,signed,pct,
+payer_mix_medicaid,stat,payer_mix,Medicaid % of gross revenue,signed,pct,
+payer_mix_commercial,stat,payer_mix,Commercial % of gross revenue,signed,pct,
+payer_mix_self_pay,stat,payer_mix,Self-pay % of gross revenue,signed,pct,
+case_mix_index,stat,quality,Medicare case mix index,signed,ratio,

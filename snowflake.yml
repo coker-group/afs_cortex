@@ -1,0 +1,61 @@
+definition_version: 2
+
+entities:
+
+  afs_stage:
+    type: stage
+    identifier:
+      database: AUDITED_FINANCIALS
+      schema: COMMON
+      name: AFS_STAGE
+    directory_table:
+      enable: true
+
+  notebook_bootstrap:
+    type: notebook
+    identifier:
+      database: AUDITED_FINANCIALS
+      schema: COMMON
+      name: AFS_01_BOOTSTRAP
+    main_file: notebooks/01_bootstrap.ipynb
+    query_warehouse: COMPUTE_WH
+    artifacts:
+      - notebooks/01_bootstrap.ipynb
+
+  notebook_ingest:
+    type: notebook
+    identifier:
+      database: AUDITED_FINANCIALS
+      schema: COMMON
+      name: AFS_02_INGEST
+    main_file: notebooks/02_ingest.ipynb
+    query_warehouse: COMPUTE_WH
+    artifacts:
+      - notebooks/02_ingest.ipynb
+      - src/
+      - prompts/
+
+  notebook_parse:
+    type: notebook
+    identifier:
+      database: AUDITED_FINANCIALS
+      schema: COMMON
+      name: AFS_03_PARSE
+    main_file: notebooks/03_parse.ipynb
+    query_warehouse: COMPUTE_WH
+    artifacts:
+      - notebooks/03_parse.ipynb
+      - src/
+      - prompts/
+
+  notebook_analyze:
+    type: notebook
+    identifier:
+      database: AUDITED_FINANCIALS
+      schema: COMMON
+      name: AFS_04_ANALYZE
+    main_file: notebooks/04_analyze.ipynb
+    query_warehouse: COMPUTE_WH
+    artifacts:
+      - notebooks/04_analyze.ipynb
+      - src/
