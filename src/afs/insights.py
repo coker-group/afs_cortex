@@ -9,7 +9,13 @@ from .cortex_llm import call_text_json_no_context, load_prompt
 
 
 def _fetch_common_is(cur, org_id):
-    cur.execute("SELECT FY_LABEL, CONCEPT, AMOUNT FROM COMMON.INCOME_STATEMENT WHERE ORG_ID = %s", (org_id,))
+    cur.execute("""
+        SELECT i.FY_LABEL, m.CONCEPT, i.AMOUNT
+          FROM COMMON.INCOME_STATEMENT i
+          JOIN COMMON.LINE_ITEM_MAP m
+            ON m.ORG_ID = i.ORG_ID AND m.NATIVE_LABEL = i.CONCEPT AND m.STATEMENT = 'income_statement'
+         WHERE i.ORG_ID = %s AND m.CONCEPT IS NOT NULL AND m.CONCEPT != ''
+    """, (org_id,))
     out: dict[str, dict] = {}
     for fy, concept, amt in cur.fetchall():
         out.setdefault(fy, {})[concept] = float(amt) if amt is not None else None
@@ -17,7 +23,13 @@ def _fetch_common_is(cur, org_id):
 
 
 def _fetch_common_bs(cur, org_id):
-    cur.execute("SELECT FY_LABEL, CONCEPT, AMOUNT FROM COMMON.BALANCE_SHEET WHERE ORG_ID = %s", (org_id,))
+    cur.execute("""
+        SELECT b.FY_LABEL, m.CONCEPT, b.AMOUNT
+          FROM COMMON.BALANCE_SHEET b
+          JOIN COMMON.LINE_ITEM_MAP m
+            ON m.ORG_ID = b.ORG_ID AND m.NATIVE_LABEL = b.CONCEPT AND m.STATEMENT = 'balance_sheet'
+         WHERE b.ORG_ID = %s AND m.CONCEPT IS NOT NULL AND m.CONCEPT != ''
+    """, (org_id,))
     out: dict[str, dict] = {}
     for fy, concept, amt in cur.fetchall():
         out.setdefault(fy, {})[concept] = float(amt) if amt is not None else None
@@ -25,7 +37,13 @@ def _fetch_common_bs(cur, org_id):
 
 
 def _fetch_common_cf(cur, org_id):
-    cur.execute("SELECT FY_LABEL, CONCEPT, AMOUNT FROM COMMON.CASH_FLOW WHERE ORG_ID = %s", (org_id,))
+    cur.execute("""
+        SELECT c.FY_LABEL, m.CONCEPT, c.AMOUNT
+          FROM COMMON.CASH_FLOW c
+          JOIN COMMON.LINE_ITEM_MAP m
+            ON m.ORG_ID = c.ORG_ID AND m.NATIVE_LABEL = c.CONCEPT AND m.STATEMENT = 'cash_flow'
+         WHERE c.ORG_ID = %s AND m.CONCEPT IS NOT NULL AND m.CONCEPT != ''
+    """, (org_id,))
     out: dict[str, dict] = {}
     for fy, concept, amt in cur.fetchall():
         out.setdefault(fy, {})[concept] = float(amt) if amt is not None else None
@@ -38,6 +56,11 @@ def _safe_ratio(num, den):
     return num / den
 
 
+def _sum_if_any(*vals):
+    known = [v for v in vals if v is not None]
+    return sum(known) if known else None
+
+
 def compute_ratios(cur, org_id: str) -> dict[str, Any]:
     is_data = _fetch_common_is(cur, org_id)
     bs_data = _fetch_common_bs(cur, org_id)
@@ -47,8 +70,15 @@ def compute_ratios(cur, org_id: str) -> dict[str, Any]:
     for fy in years:
         i = is_data.get(fy, {})
         b = bs_data.get(fy, {})
-        rev = i.get("total_operating_revenue")
-        opex = i.get("total_operating_expense")
+        rev = i.get("total_operating_revenue") or _sum_if_any(
+            i.get("net_patient_service_revenue"), i.get("other_operating_revenue")
+        )
+        opex = i.get("total_operating_expense") or _sum_if_any(
+            i.get("salaries_and_wages"), i.get("employee_benefits"),
+            i.get("supplies"), i.get("purchased_services"),
+            i.get("depreciation_amortization"), i.get("interest_expense"),
+            i.get("other_operating_expense"),
+        )
         op_income = i.get("operating_income")
         if op_income is None and rev is not None and opex is not None:
             op_income = rev - opex

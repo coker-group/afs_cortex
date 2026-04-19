@@ -28,6 +28,7 @@ from .org_registry import find_existing, insert_org, new_org_id, suggest_org_cod
 from .pdf_ingest import pages_are_empty
 from .schemas import IdentifyResult
 from .snowflake_io import (
+    _QmarkCursorWrapper,
     ensure_org_schema,
     filing_already_loaded,
     get_completed_stages,
@@ -97,7 +98,7 @@ def process_filing(
 
     conn = get_connection(session)
     try:
-        cur = conn.cursor()
+        cur = _QmarkCursorWrapper(conn.cursor()) if session is not None else conn.cursor()
         try:
             done = get_completed_stages(cur, staging_id) if staging_id else set()
 
@@ -265,8 +266,6 @@ def process_filing(
     except Exception:
         conn.rollback()
         raise
-    finally:
-        conn.close()
 
     report["finished_at"] = datetime.utcnow().isoformat()
     return report

@@ -5,7 +5,7 @@ import re
 import uuid
 from typing import Optional
 
-from rapidfuzz import fuzz, process
+import difflib
 
 from .schemas import IdentifyResult
 
@@ -43,9 +43,10 @@ def find_existing(cur, ident: IdentifyResult) -> Optional[dict]:
     if not rows:
         return None
     candidates = {_norm(r[2]): r for r in rows}
-    match = process.extractOne(_norm(ident.legal_name), list(candidates.keys()), scorer=fuzz.token_sort_ratio)
-    if match and match[1] >= 90:
-        r = candidates[match[0]]
+    query = _norm(ident.legal_name)
+    matches = difflib.get_close_matches(query, list(candidates.keys()), n=1, cutoff=0.9)
+    if matches:
+        r = candidates[matches[0]]
         return {"ORG_ID": r[0], "ORG_CODE": r[1], "LEGAL_NAME": r[2], "EIN": r[3]}
     return None
 

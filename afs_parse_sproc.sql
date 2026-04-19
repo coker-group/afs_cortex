@@ -1,0 +1,8 @@
+-- This script is the canonical CREATE PROCEDURE for the AFS parse pipeline.
+-- Execute via: EXECUTE IMMEDIATE FROM '@stage/afs_parse_sproc.sql'
+-- or copy-paste into a SQL worksheet.
+--
+-- Usage:
+--   CALL AUDITED_FINANCIALS.COMMON.PROCESS_PENDING_FILINGS();
+--   CALL AUDITED_FINANCIALS.COMMON.PROCESS_PENDING_FILINGS('staging-id-here');
+--   CALL AUDITED_FINANCIALS.COMMON.PROCESS_PENDING_FILINGS(NULL, '{"org_code":"ACME","legal_name":"Acme Health"}');

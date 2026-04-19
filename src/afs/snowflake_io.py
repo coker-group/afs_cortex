@@ -30,6 +30,28 @@ from . import config as C
 
 _SAFE_IDENT_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]{0,254}$')
 
+_PYFORMAT_RE = re.compile(r'%s')
+
+
+class _QmarkCursorWrapper:
+    """Wraps a qmark-style cursor so callers can use %s (pyformat) placeholders."""
+
+    def __init__(self, cursor):
+        self._cur = cursor
+
+    def execute(self, sql, params=None, **kwargs):
+        if params and '%s' in sql:
+            sql = _PYFORMAT_RE.sub('?', sql)
+        return self._cur.execute(sql, params, **kwargs)
+
+    def executemany(self, sql, seqparams, **kwargs):
+        if '%s' in sql:
+            sql = _PYFORMAT_RE.sub('?', sql)
+        return self._cur.executemany(sql, seqparams, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._cur, name)
+
 
 def _validate_identifier(name: str, label: str = "identifier") -> str:
     if not _SAFE_IDENT_RE.match(name):
@@ -46,9 +68,9 @@ def get_connection(session=None):
     connection is opened using the environment variables in config.py.
     """
     if session is not None:
-        # session._conn._conn is the SnowflakeConnection backing Snowpark.
-        # This is a stable internal pattern used widely in Snowflake community.
-        return session._conn._conn
+        conn = session._conn._conn
+        conn.cursor().execute(f"USE DATABASE {C.SNOWFLAKE_DATABASE}")
+        return conn
 
     # Local / CI fallback — requires SNOWFLAKE_* env vars
     from cryptography.hazmat.backends import default_backend
@@ -93,7 +115,8 @@ def cursor_from_session(session, *, commit_on_exit: bool = True):
     always closed.
     """
     conn = get_connection(session)
-    cur = conn.cursor()
+    raw_cur = conn.cursor()
+    cur = _QmarkCursorWrapper(raw_cur) if session is not None else raw_cur
     try:
         yield cur
         if commit_on_exit:

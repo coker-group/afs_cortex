@@ -82,6 +82,7 @@ def call_text_json_no_context(
     prompt: str,
     model: str | None = None,
     retries: int = 3,
+    **kwargs,
 ) -> Any:
     """Variant for prompts that are self-contained (no document text block).
 

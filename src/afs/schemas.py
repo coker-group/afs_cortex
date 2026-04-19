@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # ---------- identify ----------
@@ -29,6 +29,10 @@ PageLabel = Literal[
 ]
 
 
+_VALID_LABELS = {"cover", "toc", "auditor_letter", "is", "bs", "cf", "equity",
+                  "is_exhibit", "bs_exhibit", "note", "mdna", "stats", "other"}
+
+
 class PageClassification(BaseModel):
     page: int
     label: PageLabel
@@ -36,12 +40,19 @@ class PageClassification(BaseModel):
     note_num: Optional[str] = None
     confidence: float = 1.0
 
+    @field_validator("label", mode="before")
+    @classmethod
+    def _coerce_label(cls, v):
+        if isinstance(v, str) and v not in _VALID_LABELS:
+            return "other"
+        return v
+
 
 # ---------- statement rows ----------
 class StatementAmount(BaseModel):
     fy_label: str
     amount: Optional[float] = None
-    confidence: float = 1.0
+    confidence: Optional[float] = 1.0
 
 
 class StatementLine(BaseModel):
