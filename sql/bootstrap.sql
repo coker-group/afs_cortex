@@ -18,6 +18,7 @@ USE SCHEMA COMMON;
 -- -------------------------------------------------------------
 CREATE STAGE IF NOT EXISTS AFS_STAGE
     DIRECTORY = (ENABLE = TRUE)
+    ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE')
     COMMENT = 'Upload AFS PDFs here before running the ingest notebook';
 
 -- -------------------------------------------------------------

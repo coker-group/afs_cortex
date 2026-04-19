@@ -59,14 +59,17 @@ def extract_and_stage(session, filename: str) -> dict[str, Any]:
 def get_page_texts(page_texts: list[dict], pages: list[int] | None = None) -> str:
     """Return concatenated text for the requested page numbers.
 
-    Args:
-        page_texts: list of {"page": N, "text": "..."} dicts (from PDF_STAGING)
-        pages: 1-based page numbers to include; None means all pages
+    Handles two formats:
+      - Per-page array: [{"page": 1, "text": "..."}, {"page": 2, "text": "..."}, ...]
+      - Single-blob (current PARSE_DOCUMENT): [{"page": 1, "text": "<entire document>"}]
 
-    Returns:
-        Single string with page boundaries labelled.
+    When only a single blob is stored (page count == 1 but total_pages > 1),
+    the full text is returned regardless of the requested page numbers since
+    page boundaries are not available.
     """
     by_page = {int(p["page"]): p["text"] for p in page_texts}
+    if len(by_page) == 1 and 1 in by_page:
+        return f"=== PAGE 1 ===\n{by_page[1]}"
     target = pages if pages is not None else sorted(by_page)
     parts = []
     for pg in sorted(target):
@@ -76,6 +79,8 @@ def get_page_texts(page_texts: list[dict], pages: list[int] | None = None) -> st
 
 
 def pages_are_empty(page_texts: list[dict], pages: list[int]) -> bool:
-    """Return True if all requested pages have no extractable text (scanned/image pages)."""
+    """Return True if all requested pages have no extractable text."""
     by_page = {int(p["page"]): p["text"] for p in page_texts}
+    if len(by_page) == 1 and 1 in by_page:
+        return not (by_page[1] or "").strip()
     return all(not (by_page.get(pg) or "").strip() for pg in pages)

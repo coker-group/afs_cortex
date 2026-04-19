@@ -12,15 +12,32 @@ PAGES_PER_BATCH = 4
 def classify_pages(page_texts: list[dict], total_pages: int) -> list[PageClassification]:
     results: list[PageClassification] = []
     prompt_template = load_prompt("classify")
-    for start in range(1, total_pages + 1, PAGES_PER_BATCH):
-        end = min(start + PAGES_PER_BATCH - 1, total_pages)
-        batch_pages = list(range(start, end + 1))
-        text = get_page_texts(page_texts, pages=batch_pages)
-        page_map = ", ".join(f"page {p}" for p in batch_pages)
-        prompt = f"{prompt_template}\n\nPages in this batch: {page_map}"
-        data = call_text_json(prompt, text, max_tokens=4000, model=C.MODEL_CLASSIFY)
+    is_single_blob = len(page_texts) == 1 and int(page_texts[0].get("page", 1)) == 1
+
+    if is_single_blob:
+        text = get_page_texts(page_texts)
+        page_map = f"pages 1 through {total_pages}"
+        prompt = (
+            f"{prompt_template}\n\n"
+            f"This document has {total_pages} pages. The full text is provided as a single block "
+            f"(page boundaries are not marked). Infer page breaks from layout cues such as headers, "
+            f"footers, page numbers, and section transitions. Classify all {total_pages} pages."
+            f"\n\nPages in this batch: {page_map}"
+        )
+        data = call_text_json(prompt, text, max_tokens=16000, model=C.MODEL_CLASSIFY)
         for row in data.get("pages", []):
             results.append(PageClassification(**row))
+    else:
+        for start in range(1, total_pages + 1, PAGES_PER_BATCH):
+            end = min(start + PAGES_PER_BATCH - 1, total_pages)
+            batch_pages = list(range(start, end + 1))
+            text = get_page_texts(page_texts, pages=batch_pages)
+            page_map = ", ".join(f"page {p}" for p in batch_pages)
+            prompt = f"{prompt_template}\n\nPages in this batch: {page_map}"
+            data = call_text_json(prompt, text, max_tokens=4000, model=C.MODEL_CLASSIFY)
+            for row in data.get("pages", []):
+                results.append(PageClassification(**row))
+
     by_page: dict[int, PageClassification] = {}
     for r in results:
         by_page[r.page] = r
