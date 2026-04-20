@@ -12,7 +12,7 @@ import json
 import re
 from typing import Any
 
-from snowflake.cortex import Complete
+from snowflake.cortex import Complete, CompleteOptions
 
 from . import config as C
 
@@ -35,10 +35,15 @@ def load_prompt(name: str) -> str:
     return (C.PROMPTS / f"{name}.md").read_text(encoding="utf-8")
 
 
+def _complete(model: str, prompt: str, max_tokens: int = 8192) -> str:
+    opts = CompleteOptions({"max_tokens": min(max_tokens, 8192)})
+    return Complete(model, prompt, session=_session(), options=opts)
+
+
 def call_text_json(
     prompt: str,
     context_text: str,
-    max_tokens: int = 8000,
+    max_tokens: int = 8192,
     model: str | None = None,
     retries: int = 3,
 ) -> Any:
@@ -65,7 +70,7 @@ def call_text_json(
     last_err: Exception | None = None
     for attempt in range(retries + 1):
         try:
-            response: str = Complete(model, full_prompt, session=_session())
+            response = _complete(model, full_prompt, max_tokens=max_tokens)
             try:
                 return _parse_json(response)
             except (json.JSONDecodeError, ValueError) as e:
@@ -90,10 +95,11 @@ def call_text_json_no_context(
     all necessary input is already embedded in the prompt string.
     """
     model = model or C.MODEL_ID
+    max_tokens = kwargs.get("max_tokens", 8192)
     last_err: Exception | None = None
     for attempt in range(retries + 1):
         try:
-            response: str = Complete(model, prompt, session=_session())
+            response = _complete(model, prompt, max_tokens=max_tokens)
             try:
                 return _parse_json(response)
             except (json.JSONDecodeError, ValueError) as e:
@@ -115,7 +121,7 @@ def _repair_json(text: str, error: str, model: str) -> str:
         f"{text}\n"
         "----- END INPUT -----"
     )
-    return Complete(model, repair_prompt, session=_session())
+    return _complete(model, repair_prompt, max_tokens=8192)
 
 
 def _parse_json(text: str) -> Any:
