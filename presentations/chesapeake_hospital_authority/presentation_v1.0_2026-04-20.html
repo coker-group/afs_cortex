@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chesapeake Hospital Authority — Financial Analysis | Coker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Sans+Pro:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--navy:#1B2A4A;--steel:#4A7FB5;--light-bg:#F4F6F8;--accent:#E8833A;--green:#2E8B57;--red:#C0392B;--border:#DEE2E8;--text:#2C3E50;--text-light:#6B7B8D;--sidebar-w:260px;--card-shadow:0 2px 8px rgba(27,42,74,.08)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Source Sans Pro',sans-serif;color:var(--text);background:#fff;line-height:1.6;font-size:15px}
+h1,h2,h3,h4,h5{font-family:'Inter',sans-serif;font-weight:700;color:var(--navy)}
+h1{font-size:2rem;letter-spacing:-.02em}
+h2{font-size:1.5rem;margin:0 0 .75rem;padding-bottom:.5rem;border-bottom:2px solid var(--steel)}
+h3{font-size:1.15rem;margin:1.5rem 0 .5rem;color:var(--steel)}
+h4{font-size:1rem;margin:1rem 0 .4rem;font-weight:600}
+a{color:var(--steel);text-decoration:none}
+
+/* SIDEBAR */
+.sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:var(--navy);color:#fff;overflow-y:auto;z-index:100;padding:1.5rem 0}
+.sidebar-logo{padding:0 1.25rem .75rem;font-family:'Inter',sans-serif;font-size:1.4rem;font-weight:800;color:#fff;letter-spacing:.03em;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:.75rem;padding-bottom:1rem}
+.sidebar-logo span{color:var(--accent)}
+.sidebar-group{margin-bottom:.25rem}
+.sidebar-group-title{display:block;padding:.4rem 1.25rem;font-family:'Inter',sans-serif;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4)}
+.sidebar a{display:block;padding:.35rem 1.25rem .35rem 1.5rem;color:rgba(255,255,255,.7);font-size:.82rem;transition:all .15s;border-left:3px solid transparent}
+.sidebar a:hover,.sidebar a.active{color:#fff;background:rgba(255,255,255,.07);border-left-color:var(--accent)}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-w);padding:2rem 2.5rem 4rem}
+.main>section{margin-bottom:3rem;max-width:1100px}
+
+/* HEADER */
+.header-bar{background:linear-gradient(135deg,var(--navy) 0%,#2a4270 100%);color:#fff;padding:2.5rem 2.5rem 2rem;margin:-2rem -2.5rem 2.5rem;border-radius:0 0 0 0}
+.header-bar h1{color:#fff;font-size:2.2rem;margin-bottom:.3rem}
+.header-bar .subtitle{color:rgba(255,255,255,.7);font-size:1rem}
+.header-bar .meta{display:flex;gap:2rem;margin-top:1rem;font-size:.85rem;color:rgba(255,255,255,.55)}
+.header-bar .meta span{display:flex;align-items:center;gap:.35rem}
+
+/* METRIC TILES */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin:1.25rem 0}
+.tile{background:var(--light-bg);border-radius:10px;padding:1.1rem 1.25rem;border:1px solid var(--border)}
+.tile .label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-light);font-weight:600;margin-bottom:.2rem}
+.tile .value{font-size:1.6rem;font-weight:800;font-family:'Inter',sans-serif;color:var(--navy)}
+.tile .value.accent{color:var(--accent)}
+.tile .value.green{color:var(--green)}
+.tile .value.red{color:var(--red)}
+.tile .sub{font-size:.75rem;color:var(--text-light);margin-top:.15rem}
+
+/* TABLES */
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin:1rem 0}
+thead th{background:var(--navy);color:#fff;padding:.55rem .75rem;text-align:left;font-family:'Inter',sans-serif;font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0}
+thead th.num{text-align:right}
+tbody td{padding:.5rem .75rem;border-bottom:1px solid var(--border)}
+tbody tr:nth-child(even){background:var(--light-bg)}
+tbody tr:hover{background:#eef3f9}
+td.num{text-align:right;font-family:'JetBrains Mono',monospace;font-size:.8rem}
+td.pos{color:var(--green);font-weight:600}
+td.neg{color:var(--red);font-weight:600}
+td.bold{font-weight:700}
+.table-wrapper{overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
+
+/* CHARTS */
+.chart-container{position:relative;margin:1.25rem 0;padding:1rem;background:var(--light-bg);border-radius:10px;border:1px solid var(--border)}
+.chart-container canvas{max-height:340px}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin:1.25rem 0}
+@media(max-width:900px){.chart-row{grid-template-columns:1fr}}
+
+/* FINDING CARDS */
+.findings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;margin:1.25rem 0}
+.finding-card{border-radius:10px;padding:1.15rem;border:1px solid var(--border);background:#fff;box-shadow:var(--card-shadow)}
+.finding-card.high{border-left:4px solid var(--red)}
+.finding-card.medium{border-left:4px solid var(--accent)}
+.finding-card.low{border-left:4px solid var(--steel)}
+.finding-badge{display:inline-block;padding:.15rem .55rem;border-radius:4px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.finding-badge.high{background:#fde8e8;color:var(--red)}
+.finding-badge.medium{background:#fef3e2;color:#b45309}
+.finding-badge.low{background:#e8f0fe;color:var(--steel)}
+.finding-card h4{font-size:.92rem;margin:.3rem 0 .4rem;line-height:1.3}
+.finding-card p{font-size:.82rem;color:var(--text-light);line-height:1.5}
+.finding-meta{display:flex;gap:1rem;margin-top:.6rem;font-size:.72rem;color:var(--text-light)}
+
+/* OPPORTUNITY TABLE */
+.opp-row{display:grid;grid-template-columns:2fr 1fr 1fr 3fr;gap:.75rem;padding:.85rem 1rem;border-bottom:1px solid var(--border);align-items:start}
+.opp-row:nth-child(even){background:var(--light-bg)}
+.opp-row .opp-title{font-weight:700;font-family:'Inter',sans-serif;font-size:.88rem;color:var(--navy)}
+.opp-row .opp-impact{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--green);font-weight:600}
+.opp-row .opp-effort{font-size:.78rem}
+.opp-row .opp-source{font-size:.78rem;color:var(--text-light)}
+
+/* PHASE TIMELINE */
+.phase{margin:1.25rem 0;padding:1.25rem;border-radius:10px;border:1px solid var(--border);background:#fff;box-shadow:var(--card-shadow)}
+.phase-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem}
+.phase-num{width:36px;height:36px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:800;font-size:.85rem}
+.phase-title{font-family:'Inter',sans-serif;font-weight:700;font-size:1.05rem;color:var(--navy)}
+.phase-timeline{font-size:.78rem;color:var(--text-light);margin-left:auto}
+
+/* CALLOUT BOX */
+.callout{padding:1rem 1.25rem;border-radius:8px;margin:1rem 0;font-size:.88rem;line-height:1.6}
+.callout.warn{background:#fef3e2;border-left:4px solid var(--accent);color:#92400e}
+.callout.info{background:#e8f0fe;border-left:4px solid var(--steel);color:#1e40af}
+.callout.critical{background:#fde8e8;border-left:4px solid var(--red);color:#991b1b}
+
+/* NOTE INDEX */
+.note-pill{display:inline-block;background:var(--light-bg);border:1px solid var(--border);border-radius:6px;padding:.3rem .6rem;margin:.2rem;font-size:.78rem}
+.note-pill strong{color:var(--navy)}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">COKER<span>.</span></div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Organization</span>
+    <a href="#entity">Entity Overview</a>
+    <a href="#extraction">Extraction Stats</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Financial Statements</span>
+    <a href="#income">Income Statement</a>
+    <a href="#balance">Balance Sheet</a>
+    <a href="#cashflow">Cash Flows</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Ratio Analysis</span>
+    <a href="#ratios">Key Ratios</a>
+    <a href="#trends">Trend Deltas</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Deep Dives</span>
+    <a href="#dcoh">Days Cash Decomposition</a>
+    <a href="#labor">Labor Costs</a>
+    <a href="#payer">Payer Mix</a>
+    <a href="#capital">Capital & PPE</a>
+    <a href="#debt">Debt Structure</a>
+    <a href="#entities">Entity Performance</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Findings</span>
+    <a href="#findings">AI Findings</a>
+    <a href="#opportunities">Improvement Opps</a>
+    <a href="#liquidity-plan">Liquidity Plan</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Appendices</span>
+    <a href="#methodology">Methodology</a>
+    <a href="#quality">Data Quality</a>
+    <a href="#noteindex">Note Index</a>
+    <a href="#glossary">Glossary</a>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+<!-- HEADER -->
+<div class="header-bar">
+  <h1>Chesapeake Hospital Authority</h1>
+  <div class="subtitle">Comprehensive Financial Analysis &mdash; FY2020&ndash;FY2025</div>
+  <div class="meta">
+    <span>Prepared by Coker</span>
+    <span>Version 1.0</span>
+    <span>April 20, 2026</span>
+    <span>4 Filings &middot; 250 Pages &middot; AI-Extracted</span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PART I: ORGANIZATION PROFILE -->
+<!-- ============================================================ -->
+
+<section id="entity">
+<h2>1. Entity Overview</h2>
+<p><strong>Chesapeake Hospital Authority</strong> is a political subdivision of the Commonwealth of Virginia operating as a public healthcare system in Chesapeake, VA. The Authority oversees a multi-entity structure:</p>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Entity</th><th>Role</th><th>Key Detail</th></tr></thead>
+<tbody>
+<tr><td class="bold">Chesapeake General Hospital (CGH)</td><td>Primary acute-care hospital</td><td>~87% of consolidated patient revenue ($442M FY2025)</td></tr>
+<tr><td class="bold">Chesapeake Hospital Authority</td><td>Parent governance body</td><td>Charges CGH 2% management fee (~$7.4M)</td></tr>
+<tr><td class="bold">CHA Foundation</td><td>Investment holding entity</td><td>$231&ndash;261M endowment; $29.1M investment return (FY2025)</td></tr>
+<tr><td>Tidewater Orthopaedics (TOBH)</td><td>Equity-method investee</td><td>Ownership 75% &rarr; 92%; $32&ndash;41M investment</td></tr>
+<tr><td>SouthCare Clinic (SCC)</td><td>Subsidiary clinic</td><td>83% Authority ownership (FY2021)</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout info">
+  <strong>Structural note:</strong> The Foundation holds $261M in investments generating $29.1M in returns (FY2025), but these returns are not available for hospital operating cash needs due to entity separation. This is a key liquidity consideration.
+</div>
+</section>
+
+<section id="extraction">
+<h2>2. Extraction Statistics</h2>
+<div class="tiles">
+  <div class="tile"><div class="label">Filings Processed</div><div class="value">4</div><div class="sub">FY2020&ndash;FY2025</div></div>
+  <div class="tile"><div class="label">Pages Parsed</div><div class="value">250</div><div class="sub">62&ndash;64 pages each</div></div>
+  <div class="tile"><div class="label">Native Rows Extracted</div><div class="value accent">736</div><div class="sub">IS: 260 &middot; BS: 244 &middot; CF: 232</div></div>
+  <div class="tile"><div class="label">Common Mapped Rows</div><div class="value">210</div><div class="sub">IS: 65 &middot; BS: 96 &middot; CF: 49</div></div>
+  <div class="tile"><div class="label">Footnotes Extracted</div><div class="value">27</div><div class="sub">With structured callouts</div></div>
+  <div class="tile"><div class="label">MD&amp;A Statistics</div><div class="value">137</div><div class="sub">Operating &amp; financial metrics</div></div>
+  <div class="tile"><div class="label">Entity P&amp;L Rows</div><div class="value">129</div><div class="sub">Subsidiary-level detail</div></div>
+  <div class="tile"><div class="label">AI Findings Generated</div><div class="value accent">27</div><div class="sub">Across 7 categories</div></div>
+</div>
+<p style="font-size:.85rem;color:var(--text-light);">Pipeline: PARSE_DOCUMENT &rarr; Classify &rarr; Identify &rarr; Extract Statements &rarr; Map Concepts &rarr; Exhibits &rarr; Notes &rarr; Stats &rarr; Insights. Model: <code>mistral-large2</code> via <code>SNOWFLAKE.CORTEX.COMPLETE</code>.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART II: FINANCIAL STATEMENTS -->
+<!-- ============================================================ -->
+
+<section id="income">
+<h2>3. Income Statement Trend</h2>
+<div class="chart-container"><canvas id="chart-is"></canvas></div>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Concept</th><th class="num">FY2020</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2023</th><th class="num">FY2024</th><th class="num">FY2025</th></tr></thead>
+<tbody>
+<tr><td class="bold">Net Patient Service Revenue</td><td class="num">351,511,479</td><td class="num">402,024,291</td><td class="num">410,206,082</td><td class="num">453,911,510</td><td class="num">484,294,763</td><td class="num">509,070,389</td></tr>
+<tr><td>Other Operating Revenue</td><td class="num">12,707,480</td><td class="num">16,087,340</td><td class="num">15,134,377</td><td class="num">16,187,876</td><td class="num">16,257,382</td><td class="num">17,860,938</td></tr>
+<tr style="background:#e8f0fe"><td class="bold">Total Operating Revenue</td><td class="num bold">364,218,959</td><td class="num bold">418,111,631</td><td class="num bold">425,340,459</td><td class="num bold">470,099,386</td><td class="num bold">500,552,145</td><td class="num bold">526,931,327</td></tr>
+<tr><td>Salaries &amp; Wages</td><td class="num">140,328,715</td><td class="num">151,526,353</td><td class="num">161,296,095</td><td class="num">175,469,578</td><td class="num">194,988,492</td><td class="num">209,575,736</td></tr>
+<tr><td>Employee Benefits</td><td class="num">35,272,751</td><td class="num">33,969,912</td><td class="num">30,677,658</td><td class="num">37,313,073</td><td class="num">40,153,002</td><td class="num">42,582,611</td></tr>
+<tr><td>Supplies</td><td class="num">71,666,438</td><td class="num">82,386,314</td><td class="num">93,600,167</td><td class="num">97,821,866</td><td class="num">107,700,498</td><td class="num">112,076,385</td></tr>
+<tr><td>Purchased Services</td><td class="num">23,348,650</td><td class="num">28,063,396</td><td class="num">24,867,416</td><td class="num">28,907,891</td><td class="num">31,583,959</td><td class="num">35,146,845</td></tr>
+<tr><td>Other Operating Expense</td><td class="num">45,517,010</td><td class="num">50,167,091</td><td class="num">49,094,498</td><td class="num">56,111,481</td><td class="num">56,171,843</td><td class="num">60,682,377</td></tr>
+<tr><td>Depreciation &amp; Amortization</td><td class="num">22,562,537</td><td class="num">23,805,157</td><td class="num">26,585,090</td><td class="num">26,654,749</td><td class="num">29,134,123</td><td class="num">29,571,938</td></tr>
+<tr><td>Interest Expense</td><td class="num">3,648,876</td><td class="num">3,505,821</td><td class="num">5,429,630</td><td class="num">4,580,710</td><td class="num">4,469,388</td><td class="num">4,615,460</td></tr>
+<tr style="background:#e8f0fe"><td class="bold">Total Operating Expense</td><td class="num bold">342,344,977</td><td class="num bold">373,424,044</td><td class="num bold">391,550,554</td><td class="num bold">426,859,348</td><td class="num bold">464,201,305</td><td class="num bold">494,251,352</td></tr>
+<tr style="background:#dff0d8"><td class="bold">Operating Income</td><td class="num bold pos">21,873,982</td><td class="num bold pos">44,687,587</td><td class="num bold pos">33,789,905</td><td class="num bold pos">43,240,038</td><td class="num bold pos">36,350,840</td><td class="num bold pos">32,679,975</td></tr>
+<tr><td>Investment Return</td><td class="num">6,031,956</td><td class="num pos">41,048,594</td><td class="num neg">(22,133,953)</td><td class="num pos">19,270,695</td><td class="num pos">26,408,062</td><td class="num pos">30,597,022</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout info"><strong>Revenue CAGR:</strong> 7.7% (FY2020&ndash;FY2025) &nbsp;&middot;&nbsp; <strong>Expense CAGR:</strong> 7.6% &nbsp;&middot;&nbsp; The 0.1% gap compounds to significant margin erosion on a $500M+ revenue base.</div>
+</section>
+
+<section id="balance">
+<h2>4. Balance Sheet Trend</h2>
+<div class="chart-container"><canvas id="chart-bs"></canvas></div>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Concept</th><th class="num">FY2020</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2023</th><th class="num">FY2024</th><th class="num">FY2025</th></tr></thead>
+<tbody>
+<tr><td class="bold">Cash &amp; Equivalents</td><td class="num">100,631,678</td><td class="num">121,786,932</td><td class="num">81,658,647</td><td class="num">49,194,599</td><td class="num">37,571,092</td><td class="num neg">26,452,806</td></tr>
+<tr><td>Long-Term Investments</td><td class="num">13,461,139</td><td class="num">6,580,263</td><td class="num">7,402,783</td><td class="num">7,475,417</td><td class="num">7,457,600</td><td class="num">6,853,475</td></tr>
+<tr><td>Patient AR (net)</td><td class="num">39,424,313</td><td class="num">47,051,746</td><td class="num">47,338,830</td><td class="num">46,323,339</td><td class="num">49,823,812</td><td class="num">58,844,157</td></tr>
+<tr><td>Inventories</td><td class="num">5,830,504</td><td class="num">7,546,717</td><td class="num">7,234,343</td><td class="num">8,566,420</td><td class="num">8,887,879</td><td class="num">9,545,006</td></tr>
+<tr><td class="bold">PPE (net)</td><td class="num">&mdash;</td><td class="num">111,241,596</td><td class="num">100,635,859</td><td class="num">161,095,788</td><td class="num">191,950,263</td><td class="num">187,856,347</td></tr>
+<tr><td>Right-of-Use Assets</td><td class="num">&mdash;</td><td class="num">17,397,286</td><td class="num">11,813,705</td><td class="num">9,243,419</td><td class="num">15,180,761</td><td class="num">12,781,893</td></tr>
+<tr><td>Goodwill &amp; Intangibles</td><td class="num">9,520,649</td><td class="num">9,520,649</td><td class="num">9,639,649</td><td class="num">9,744,595</td><td class="num">9,812,595</td><td class="num">9,866,595</td></tr>
+<tr><td>Accounts Payable</td><td class="num">17,781,265</td><td class="num">26,903,927</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">33,455,094</td><td class="num">39,490,587</td></tr>
+<tr><td>3rd Party Payor Liability</td><td class="num">3,729,988</td><td class="num">3,875,693</td><td class="num">3,423,623</td><td class="num">12,196,043</td><td class="num">4,579,350</td><td class="num">2,360,058</td></tr>
+<tr><td class="bold">Long-Term Debt</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">110,661,048</td><td class="num">105,971,306</td></tr>
+<tr><td>Pension Liability</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">3,775,806</td><td class="num">&mdash;</td><td class="num neg">24,567,652</td><td class="num">18,675,376</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout critical"><strong>Cash collapsed 78%</strong> from $121.8M (FY2021) to $26.5M (FY2025), while PPE nearly doubled ($111M &rarr; $188M). The capital program consumed available liquidity.</div>
+</section>
+
+<section id="cashflow">
+<h2>5. Cash Flow Trend</h2>
+<div class="chart-container"><canvas id="chart-cf"></canvas></div>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Activity</th><th class="num">FY2020</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2023</th><th class="num">FY2024</th><th class="num">FY2025</th></tr></thead>
+<tbody>
+<tr><td class="bold">Operating</td><td class="num">9,442,425</td><td class="num">5,833,552</td><td class="num">11,212,680</td><td class="num">11,333,444</td><td class="num neg">1,704,344</td><td class="num neg">1,716,979</td></tr>
+<tr><td>Debt Repaid</td><td class="num neg">(2,812,261)</td><td class="num neg">(5,012,351)</td><td class="num neg">(3,909,672)</td><td class="num neg">(3,612,003)</td><td class="num neg">(4,738,217)</td><td class="num neg">(4,861,986)</td></tr>
+<tr><td>Investment Purchases</td><td class="num neg">(156,680,517)</td><td class="num neg">(135,297,887)</td><td class="num neg">(152,143,821)</td><td class="num neg">(83,971,219)</td><td class="num neg">(6,326,442)</td><td class="num neg">(5,149,902)</td></tr>
+<tr><td>Investment Sales</td><td class="num pos">154,920,834</td><td class="num pos">2,135,250</td><td class="num pos">147,216,072</td><td class="num pos">83,755,870</td><td class="num pos">83,811,724</td><td class="num pos">95,236,391</td></tr>
+<tr style="background:#dff0d8"><td class="bold">Net Change in Cash</td><td class="num bold">162,631,438</td><td class="num bold">171,803,362</td><td class="num bold">81,658,647</td><td class="num bold">49,194,599</td><td class="num bold neg">37,571,092</td><td class="num bold neg">26,452,806</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout warn"><strong>Operating cash flow eroded 85%:</strong> $11.3M (FY2023) &rarr; $1.7M (FY2025). The system is barely cash-flow positive from operations while servicing $4.9M in annual debt repayment.</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART III: RATIO ANALYSIS -->
+<!-- ============================================================ -->
+
+<section id="ratios">
+<h2>6. Key Performance Ratios</h2>
+<div class="chart-container"><canvas id="chart-ratios"></canvas></div>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Metric</th><th class="num">FY2020</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2023</th><th class="num">FY2024</th><th class="num">FY2025</th><th>Trend</th></tr></thead>
+<tbody>
+<tr><td class="bold">Operating Margin %</td><td class="num">6.01</td><td class="num pos">10.69</td><td class="num">7.94</td><td class="num">9.20</td><td class="num">7.26</td><td class="num neg">6.20</td><td class="neg">&darr; Declining</td></tr>
+<tr><td class="bold">EBIDA Margin %</td><td class="num">12.20</td><td class="num pos">16.38</td><td class="num">14.19</td><td class="num">14.87</td><td class="num">13.08</td><td class="num neg">11.81</td><td class="neg">&darr; Declining</td></tr>
+<tr><td>Salaries % of Revenue</td><td class="num">48.21</td><td class="num pos">44.37</td><td class="num">45.13</td><td class="num">45.26</td><td class="num">46.98</td><td class="num neg">47.85</td><td class="neg">&uarr; Rising</td></tr>
+<tr><td>Supplies % of Revenue</td><td class="num">19.68</td><td class="num">19.70</td><td class="num">22.01</td><td class="num">20.81</td><td class="num">21.52</td><td class="num">21.27</td><td>&rarr; Stable-high</td></tr>
+<tr><td>Purchased Svcs % of OpEx</td><td class="num">6.82</td><td class="num">7.52</td><td class="num">6.35</td><td class="num">6.77</td><td class="num">6.80</td><td class="num">7.11</td><td>&rarr; Stable</td></tr>
+<tr><td class="bold">Days Cash on Hand</td><td class="num pos">130.23</td><td class="num pos">134.01</td><td class="num">89.07</td><td class="num neg">51.68</td><td class="num neg">37.80</td><td class="num neg">26.19</td><td class="neg">&darr;&darr; Critical</td></tr>
+<tr><td>Days in AR</td><td class="num">39.51</td><td class="num">41.07</td><td class="num">40.62</td><td class="num pos">35.97</td><td class="num">36.33</td><td class="num">40.76</td><td>&rarr; Volatile</td></tr>
+<tr><td>Debt to Capitalization %</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">24.11</td><td class="num">23.23</td><td>&mdash;</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="trends">
+<h2>7. Year-over-Year Deltas</h2>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Metric</th><th class="num">FY20&rarr;21</th><th class="num">FY21&rarr;22</th><th class="num">FY22&rarr;23</th><th class="num">FY23&rarr;24</th><th class="num">FY24&rarr;25</th></tr></thead>
+<tbody>
+<tr><td>Operating Margin</td><td class="num pos">+4.68 pp</td><td class="num neg">&minus;2.75 pp</td><td class="num pos">+1.26 pp</td><td class="num neg">&minus;1.94 pp</td><td class="num neg">&minus;1.06 pp</td></tr>
+<tr><td>EBIDA Margin</td><td class="num pos">+4.18 pp</td><td class="num neg">&minus;2.19 pp</td><td class="num pos">+0.68 pp</td><td class="num neg">&minus;1.79 pp</td><td class="num neg">&minus;1.27 pp</td></tr>
+<tr><td>Salaries % Rev</td><td class="num pos">&minus;3.84 pp</td><td class="num neg">+0.76 pp</td><td class="num neg">+0.13 pp</td><td class="num neg">+1.72 pp</td><td class="num neg">+0.87 pp</td></tr>
+<tr><td>Supplies % Rev</td><td class="num">+0.02 pp</td><td class="num neg">+2.31 pp</td><td class="num pos">&minus;1.20 pp</td><td class="num neg">+0.71 pp</td><td class="num pos">&minus;0.25 pp</td></tr>
+<tr><td class="bold">Days Cash</td><td class="num pos">+3.78</td><td class="num neg">&minus;44.94</td><td class="num neg">&minus;37.39</td><td class="num neg">&minus;13.88</td><td class="num neg">&minus;11.61</td></tr>
+<tr><td>Days in AR</td><td class="num neg">+1.56</td><td class="num pos">&minus;0.45</td><td class="num pos">&minus;4.65</td><td class="num neg">+0.36</td><td class="num neg">+4.43</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART IV: DEEP DIVES -->
+<!-- ============================================================ -->
+
+<section id="dcoh">
+<h2>8. Days Cash on Hand &mdash; Decomposition</h2>
+<p>Formula: <code>Days Cash = (Cash + STI + LTI) / ((Total OpEx &minus; D&amp;A) / 365)</code></p>
+<div class="chart-row">
+  <div class="chart-container"><canvas id="chart-dcoh-num"></canvas></div>
+  <div class="chart-container"><canvas id="chart-dcoh-den"></canvas></div>
+</div>
+<h3>Numerator &mdash; Liquid Assets ($M)</h3>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Component</th><th class="num">FY2020</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2023</th><th class="num">FY2024</th><th class="num">FY2025</th><th class="num">5yr &Delta;</th></tr></thead>
+<tbody>
+<tr><td>Cash</td><td class="num">100.6M</td><td class="num">121.8M</td><td class="num">81.7M</td><td class="num">49.2M</td><td class="num">37.6M</td><td class="num neg">26.5M</td><td class="num neg">&minus;$95.3M</td></tr>
+<tr><td>STI</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">0.03M</td><td class="num">0.04M</td><td class="num">&mdash;</td></tr>
+<tr><td>LTI</td><td class="num">13.5M</td><td class="num">6.6M</td><td class="num">7.4M</td><td class="num">7.5M</td><td class="num">7.5M</td><td class="num">6.9M</td><td class="num neg">&minus;$6.6M</td></tr>
+<tr style="background:#fde8e8"><td class="bold">Total Liquid</td><td class="num bold">114.1M</td><td class="num bold">128.4M</td><td class="num bold">89.1M</td><td class="num bold">56.7M</td><td class="num bold">45.1M</td><td class="num bold neg">33.3M</td><td class="num bold neg">&minus;$95.1M (&minus;74%)</td></tr>
+</tbody>
+</table>
+</div>
+<h3>Denominator &mdash; Daily Cash Operating Expense ($K/day)</h3>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Component</th><th class="num">FY2020</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2023</th><th class="num">FY2024</th><th class="num">FY2025</th></tr></thead>
+<tbody>
+<tr><td>Total OpEx</td><td class="num">342.3M</td><td class="num">373.4M</td><td class="num">391.6M</td><td class="num">426.9M</td><td class="num">464.2M</td><td class="num">494.3M</td></tr>
+<tr><td>Less D&amp;A</td><td class="num">(22.6M)</td><td class="num">(23.8M)</td><td class="num">(26.6M)</td><td class="num">(26.7M)</td><td class="num">(29.1M)</td><td class="num">(29.6M)</td></tr>
+<tr style="background:#fef3e2"><td class="bold">Daily Cash Burn</td><td class="num bold">$876K</td><td class="num bold">$958K</td><td class="num bold">$1,000K</td><td class="num bold">$1,096K</td><td class="num bold">$1,192K</td><td class="num bold neg">$1,273K</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout critical"><strong>Dual squeeze:</strong> Liquid assets declined 74% (&minus;$95M) while daily cash burn grew 45% (+$397K/day). Capital investment consumed available cash &mdash; PPE grew $77M while operating CF collapsed to $1.7M.</div>
+</section>
+
+<section id="labor">
+<h2>9. Labor Cost Analysis</h2>
+<div class="chart-container"><canvas id="chart-labor"></canvas></div>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Component</th><th class="num">FY2020</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2023</th><th class="num">FY2024</th><th class="num">FY2025</th><th class="num">5yr &Delta;</th></tr></thead>
+<tbody>
+<tr><td>Salaries</td><td class="num">140.3M</td><td class="num">151.5M</td><td class="num">161.3M</td><td class="num">175.5M</td><td class="num">195.0M</td><td class="num">209.6M</td><td class="num neg">+$69.2M (+49%)</td></tr>
+<tr><td>Benefits</td><td class="num">35.3M</td><td class="num">34.0M</td><td class="num">30.7M</td><td class="num">37.3M</td><td class="num">40.2M</td><td class="num">42.6M</td><td class="num neg">+$7.3M (+21%)</td></tr>
+<tr style="background:#fef3e2"><td class="bold">Total Labor</td><td class="num bold">175.6M</td><td class="num bold">185.5M</td><td class="num bold">192.0M</td><td class="num bold">212.8M</td><td class="num bold">235.1M</td><td class="num bold">252.2M</td><td class="num bold neg">+$76.6M (+44%)</td></tr>
+<tr><td>% of Revenue</td><td class="num">48.2%</td><td class="num pos">44.4%</td><td class="num">45.1%</td><td class="num">45.3%</td><td class="num">47.0%</td><td class="num neg">47.9%</td><td class="num">&minus;0.3 pp</td></tr>
+</tbody>
+</table>
+</div>
+<h3>Pension Obligation (from Note 7)</h3>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Metric</th><th class="num">FY2020</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2023</th><th class="num">FY2024</th><th class="num">FY2025</th></tr></thead>
+<tbody>
+<tr><td>Contribution Rate</td><td class="num">4.55%</td><td class="num">4.07%</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr><td>Discount Rate</td><td class="num">7.0%</td><td class="num">7.0%</td><td class="num">7.0%</td><td class="num">7.0%</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr><td>Investment Return Assumption</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">7.7%</td><td class="num">5.8%</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr><td class="bold">Net Pension Liability</td><td class="num">$21.1M</td><td class="num pos">$8.9M</td><td class="num">&mdash;</td><td class="num">$15.8M</td><td class="num neg">$24.6M</td><td class="num">$18.7M</td></tr>
+</tbody>
+</table>
+</div>
+<h3>Professional Fees &mdash; Contract Labor Proxy (Entity-Level)</h3>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Entity</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2025</th><th class="num">&Delta; FY22&rarr;25</th></tr></thead>
+<tbody>
+<tr><td>Chesapeake General Hospital</td><td class="num">$25.1M</td><td class="num">$27.8M</td><td class="num neg">$38.9M</td><td class="num neg">+$11.1M (+40%)</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout warn"><strong>Contract labor is a major cost driver:</strong> CGH professional fees grew 40% ($27.8M &rarr; $38.9M) in 3 years. Converting contract labor to employed staff could save an estimated $5&ndash;8M annually.</div>
+</section>
+
+<section id="payer">
+<h2>10. Payer Mix Evolution</h2>
+<div class="chart-row">
+  <div class="chart-container"><canvas id="chart-payer-21"></canvas></div>
+  <div class="chart-container"><canvas id="chart-payer-25"></canvas></div>
+</div>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Payer</th><th class="num">FY2020</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2023</th><th class="num">FY2025</th><th>&Delta;</th></tr></thead>
+<tbody>
+<tr><td class="bold">Medicare</td><td class="num">31%</td><td class="num">33%</td><td class="num">32%</td><td class="num">30%</td><td class="num">33%</td><td>&rarr; Stable</td></tr>
+<tr><td class="bold">Anthem (commercial)</td><td class="num pos">26%</td><td class="num">25%</td><td class="num">25%</td><td class="num neg">18%</td><td class="num neg">21%</td><td class="neg">&darr; &minus;5 pp</td></tr>
+<tr><td>Medicaid</td><td class="num">12%</td><td class="num">13%</td><td class="num">14%</td><td class="num neg">9%</td><td class="num">10%</td><td class="neg">&darr; &minus;2 pp</td></tr>
+<tr><td>Optima (managed care)</td><td class="num">7%</td><td class="num">7%</td><td class="num">6%</td><td class="num neg">11%</td><td class="num">9%</td><td class="neg">&uarr; +2 pp</td></tr>
+<tr><td class="bold">Self-Pay</td><td class="num">2%</td><td class="num">1%</td><td class="num">2%</td><td class="num neg">5%</td><td class="num neg">4%</td><td class="neg">&uarr;&uarr; +2 pp</td></tr>
+<tr><td>Other</td><td class="num">20%</td><td class="num">21%</td><td class="num">21%</td><td class="num">27%</td><td class="num">23%</td><td>&uarr; +3 pp</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout warn"><strong>Revenue yield pressure:</strong> Anthem (highest commercial reimbursement) declined 26% &rarr; 21% while self-pay tripled (1% &rarr; 4%). Estimated 3&ndash;5% revenue yield decline per encounter, translating to ~$15&ndash;25M in foregone revenue at current volume.</div>
+</section>
+
+<section id="capital">
+<h2>11. Capital Investment &amp; PPE</h2>
+<div class="chart-container"><canvas id="chart-ppe"></canvas></div>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Metric</th><th class="num">FY2020</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2023</th><th class="num">FY2024</th><th class="num">FY2025</th></tr></thead>
+<tbody>
+<tr><td class="bold">PPE (net)</td><td class="num">&mdash;</td><td class="num">$111.2M</td><td class="num">$100.6M</td><td class="num">$161.1M</td><td class="num">$192.0M</td><td class="num">$187.9M</td></tr>
+<tr><td>CIP (exhibit)</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num neg">$80.3M</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr><td>Capital Assets (note)</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">$252.6M</td><td class="num">$259.2M</td></tr>
+<tr><td>D&amp;A</td><td class="num">$22.6M</td><td class="num">$23.8M</td><td class="num">$26.6M</td><td class="num">$26.7M</td><td class="num">$29.1M</td><td class="num">$29.6M</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout info"><strong>The $80.3M CIP balance in FY2022</strong> indicates a major construction project. PPE nearly doubled ($100.6M &rarr; $192.0M) by FY2024 as projects completed. The capital program was largely cash-funded, directly driving the $95M liquid asset decline.</div>
+</section>
+
+<section id="debt">
+<h2>12. Debt Structure</h2>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Component</th><th class="num">FY2021</th><th class="num">FY2022</th><th class="num">FY2023</th><th class="num">FY2024</th><th class="num">FY2025</th></tr></thead>
+<tbody>
+<tr><td>Revenue Bonds (Series 2019)</td><td class="num">$111.0M</td><td class="num">$108.5M</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr><td>Unamortized Bond Premium</td><td class="num">$12.8M</td><td class="num">$11.3M</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr><td>Equipment Loans/Notes</td><td class="num">$4.1M</td><td class="num">$3.7M</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr style="background:#e8f0fe"><td class="bold">Total LT Obligations</td><td class="num bold">$128.5M</td><td class="num bold">$124.2M</td><td class="num bold">$119.3M</td><td class="num bold">$114.5M</td><td class="num bold">$109.8M</td></tr>
+<tr><td>Annual Debt Service</td><td class="num">~$5.0M</td><td class="num">~$3.9M</td><td class="num">~$3.6M</td><td class="num">~$4.7M</td><td class="num">~$4.9M</td></tr>
+<tr><td>Debt-to-Cap %</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">24.11%</td><td class="num">23.23%</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout warn"><strong>Covenant risk:</strong> At 26 days cash on hand, the Authority is likely at or near debt covenant trigger levels. Conservative leverage (23% debt-to-cap) provides some cushion, but limited borrowing capacity to bridge the cash gap.</div>
+</section>
+
+<section id="entities">
+<h2>13. Entity-Level Performance</h2>
+<h3>FY2022 &mdash; Three-Entity Breakdown</h3>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Line Item</th><th class="num">CGH</th><th class="num">Authority</th><th class="num">Foundation</th></tr></thead>
+<tbody>
+<tr><td>Net Patient Revenue</td><td class="num">$361.0M</td><td class="num">$7.9M</td><td class="num">$0</td></tr>
+<tr><td>Operating Income</td><td class="num pos">$10.1M</td><td class="num pos">$6.7M</td><td class="num neg">($0.002M)</td></tr>
+<tr><td>Investment Income</td><td class="num">$1.3M</td><td class="num">$0</td><td class="num neg">($21.5M)</td></tr>
+<tr><td class="bold">Change in Net Position</td><td class="num bold pos">$13.3M</td><td class="num bold pos">$10.6M</td><td class="num bold neg">($21.5M)</td></tr>
+</tbody>
+</table>
+</div>
+<h3>FY2025 &mdash; Three-Entity Breakdown</h3>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Line Item</th><th class="num">CGH</th><th class="num">Authority</th><th class="num">Foundation</th></tr></thead>
+<tbody>
+<tr><td>Net Patient Revenue</td><td class="num">$442.1M</td><td class="num">$0</td><td class="num">$0</td></tr>
+<tr><td>Salaries</td><td class="num">$163.4M</td><td class="num">$0</td><td class="num">$0</td></tr>
+<tr><td>Professional Fees</td><td class="num neg">$38.9M</td><td class="num">$0.04M</td><td class="num">$0</td></tr>
+<tr><td>Investment Income</td><td class="num">$0.7M</td><td class="num">$0</td><td class="num pos">$29.1M</td></tr>
+<tr><td>Affiliate Transfers</td><td class="num neg">($2.9M)</td><td class="num pos">$2.0M</td><td class="num">$0</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout info"><strong>Structural insight:</strong> The Foundation&rsquo;s $29.1M investment return (FY2025) sits in a separate entity. CGH bears 100% of clinical costs ($163M salaries, $38.9M professional fees) while only receiving $2.9M in affiliate transfers. Exploring board-approved Foundation distributions could unlock $5&ndash;10M for hospital liquidity.</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART V: FINDINGS & RECOMMENDATIONS -->
+<!-- ============================================================ -->
+
+<section id="findings">
+<h2>14. AI-Generated Findings</h2>
+<p>27 findings across 7 categories, synthesized from 6-year ratio analysis and trend data.</p>
+
+<h3>High Severity</h3>
+<div class="findings-grid">
+  <div class="finding-card high">
+    <span class="finding-badge high">HIGH</span>
+    <h4>Declining Operating Margin</h4>
+    <p>Operating margin declined from 10.69% (FY2021) to 6.20% (FY2025). Revenue grew 7.7% CAGR but expenses grew 7.6% &mdash; the 0.1% gap compounds to significant erosion on a $500M+ base.</p>
+    <div class="finding-meta"><span>Est. Impact: $10&ndash;20M/yr</span><span>Playbook: Strategy &amp; Transactions</span></div>
+  </div>
+  <div class="finding-card high">
+    <span class="finding-badge high">HIGH</span>
+    <h4>Critically Low Days Cash on Hand</h4>
+    <p>Days cash on hand collapsed from 134 (FY2021) to 26 (FY2025). Approximately 10th percentile for Moody&rsquo;s-rated systems. Probable covenant trigger territory.</p>
+    <div class="finding-meta"><span>Est. Impact: Covenant risk</span><span>Playbook: Strategy &amp; Transactions</span></div>
+  </div>
+</div>
+
+<h3>Medium Severity</h3>
+<div class="findings-grid">
+  <div class="finding-card medium">
+    <span class="finding-badge medium">MEDIUM</span>
+    <h4>High Labor Costs (47.9% of Revenue)</h4>
+    <p>Labor as % of revenue rose from 44.4% to 47.9%. Salary growth (+49% over 5 years) outpaced revenue growth (+45%). Professional fees (contract labor proxy) grew 40% at CGH.</p>
+    <div class="finding-meta"><span>$5&ndash;10M/yr</span><span>Provider Compensation</span></div>
+  </div>
+  <div class="finding-card medium">
+    <span class="finding-badge medium">MEDIUM</span>
+    <h4>Supply Chain Costs Elevated (21.3%)</h4>
+    <p>Supplies as % of revenue consistently 19.7&ndash;22.0% across all 6 years. At current $112M spend, benchmarking to 18% would yield $17M opportunity.</p>
+    <div class="finding-meta"><span>$3&ndash;6M/yr</span><span>Supply Chain Management</span></div>
+  </div>
+  <div class="finding-card medium">
+    <span class="finding-badge medium">MEDIUM</span>
+    <h4>Purchased Services Growth</h4>
+    <p>Purchased services as % of OpEx increased from 6.35% (FY2022) to 7.11% (FY2025). Absolute growth: $24.9M &rarr; $35.1M (+41%).</p>
+    <div class="finding-meta"><span>$2&ndash;4M/yr</span><span>Provider Compensation</span></div>
+  </div>
+  <div class="finding-card medium">
+    <span class="finding-badge medium">MEDIUM</span>
+    <h4>Days in AR Volatile (40.8 days)</h4>
+    <p>AR days ranged 36&ndash;41 across the period. Self-pay grew from 1% to 4% of receivables &mdash; higher bad debt risk. Revenue cycle optimization could enhance cash flow.</p>
+    <div class="finding-meta"><span>$1&ndash;4M/yr</span><span>Revenue Cycle</span></div>
+  </div>
+</div>
+
+<h3>Low Severity</h3>
+<div class="findings-grid">
+  <div class="finding-card low">
+    <span class="finding-badge low">LOW</span>
+    <h4>Increasing Debt-to-Capitalization</h4>
+    <p>Ratio at 23&ndash;24% (FY2024/25). Conservative leverage but indicates higher reliance on debt. Limited capacity for additional borrowing.</p>
+    <div class="finding-meta"><span>Playbook: Strategy &amp; Transactions</span></div>
+  </div>
+</div>
+</section>
+
+<section id="opportunities">
+<h2>15. Margin Improvement Opportunities</h2>
+<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+<div class="opp-row" style="background:var(--navy);color:#fff;font-weight:700;font-family:'Inter',sans-serif;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">
+  <div>Opportunity</div><div>Est. Impact</div><div>Effort</div><div>Narrative Source</div>
+</div>
+<div class="opp-row"><div class="opp-title">1. Convert contract labor to employed staff</div><div class="opp-impact">$5&ndash;8M/yr</div><div class="opp-effort">Medium</div><div class="opp-source">Professional fees grew $27.8M &rarr; $38.9M (+40%) at CGH (IS Exhibit Entity)</div></div>
+<div class="opp-row"><div class="opp-title">2. Supply chain GPO renegotiation</div><div class="opp-impact">$3&ndash;6M/yr</div><div class="opp-effort">Medium</div><div class="opp-source">Supplies at 21.3% of revenue vs. 18% benchmark; $112M base</div></div>
+<div class="opp-row"><div class="opp-title">3. Renegotiate managed care rates</div><div class="opp-impact">$5&ndash;10M/yr</div><div class="opp-effort">High</div><div class="opp-source">Anthem declined 26% &rarr; 21%; Optima grew 7% &rarr; 9% (Note 9 callouts)</div></div>
+<div class="opp-row"><div class="opp-title">4. Revenue cycle acceleration</div><div class="opp-impact">$2&ndash;4M/yr</div><div class="opp-effort">Low</div><div class="opp-source">Days AR 40.8; self-pay grew to 4% of receivables (Note 9 callouts)</div></div>
+<div class="opp-row"><div class="opp-title">5. Defer non-critical capital projects</div><div class="opp-impact">$10&ndash;15M cash</div><div class="opp-effort">Low</div><div class="opp-source">PPE grew $77M in 4 years; CIP $80.3M in FY2022 (BS Exhibit PPE)</div></div>
+<div class="opp-row"><div class="opp-title">6. Pension assumption review</div><div class="opp-impact">$1&ndash;2M/yr</div><div class="opp-effort">Low</div><div class="opp-source">NPL swung $8.9M &rarr; $24.6M; return assumption dropped 7.7% &rarr; 5.8% (Note 7)</div></div>
+<div class="opp-row"><div class="opp-title">7. Foundation investment income access</div><div class="opp-impact">$5&ndash;10M cash</div><div class="opp-effort">High</div><div class="opp-source">Foundation $261M generating $29.1M returns (IS Exhibit Entity)</div></div>
+</div>
+<div class="tiles" style="margin-top:1.5rem">
+  <div class="tile"><div class="label">Total Margin Improvement</div><div class="value green">$21&ndash;45M/yr</div><div class="sub">4&ndash;9% of revenue</div></div>
+  <div class="tile"><div class="label">Cash Preservation / Access</div><div class="value green">$15&ndash;25M</div><div class="sub">One-time + ongoing</div></div>
+</div>
+</section>
+
+<section id="liquidity-plan">
+<h2>16. Liquidity Action Plan</h2>
+<div class="tiles" style="margin-bottom:1.5rem">
+  <div class="tile"><div class="label">Current State</div><div class="value red">26 days</div><div class="sub">Cash on hand (FY2025)</div></div>
+  <div class="tile"><div class="label">Target</div><div class="value green">75+ days</div><div class="sub">Within 24 months</div></div>
+  <div class="tile"><div class="label">Cash Needed</div><div class="value accent">~$62M</div><div class="sub">At current daily burn rate</div></div>
+</div>
+
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-num">1</div>
+    <div class="phase-title">Immediate &mdash; Cash Preservation</div>
+    <div class="phase-timeline">0&ndash;6 months &nbsp; | &nbsp; +$15&ndash;23M</div>
+  </div>
+  <div class="table-wrapper">
+  <table>
+  <thead><tr><th>Action</th><th class="num">Cash Impact</th><th>Timeline</th></tr></thead>
+  <tbody>
+  <tr><td>Pause discretionary CapEx (non-safety)</td><td class="num pos">+$10&ndash;15M</td><td>Immediate</td></tr>
+  <tr><td>Revenue cycle blitz (self-pay collections, denial mgmt)</td><td class="num pos">+$2&ndash;3M</td><td>3&ndash;6 months</td></tr>
+  <tr><td>AP optimization (extend terms where available)</td><td class="num pos">+$3&ndash;5M</td><td>1&ndash;3 months</td></tr>
+  </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-num">2</div>
+    <div class="phase-title">Near-term &mdash; Structural Improvements</div>
+    <div class="phase-timeline">6&ndash;18 months &nbsp; | &nbsp; +$13&ndash;24M/yr</div>
+  </div>
+  <div class="table-wrapper">
+  <table>
+  <thead><tr><th>Action</th><th class="num">Cash Impact</th><th>Timeline</th></tr></thead>
+  <tbody>
+  <tr><td>Contract labor conversion program</td><td class="num pos">+$5&ndash;8M/yr</td><td>6&ndash;12 months</td></tr>
+  <tr><td>Supply chain renegotiation / GPO review</td><td class="num pos">+$3&ndash;6M/yr</td><td>9&ndash;18 months</td></tr>
+  <tr><td>Managed care rate renegotiation</td><td class="num pos">+$5&ndash;10M/yr</td><td>12&ndash;18 months</td></tr>
+  </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-num">3</div>
+    <div class="phase-title">Strategic &mdash; Capital Structure</div>
+    <div class="phase-timeline">12&ndash;24 months</div>
+  </div>
+  <div class="table-wrapper">
+  <table>
+  <thead><tr><th>Action</th><th class="num">Cash Impact</th><th>Timeline</th></tr></thead>
+  <tbody>
+  <tr><td>Foundation distribution framework</td><td class="num pos">+$5&ndash;10M</td><td>12&ndash;18 months</td></tr>
+  <tr><td>Debt refinancing assessment</td><td class="num">TBD</td><td>12&ndash;24 months</td></tr>
+  <tr><td>Pension strategy review</td><td class="num pos">+$1&ndash;2M/yr</td><td>18&ndash;24 months</td></tr>
+  </tbody>
+  </table>
+  </div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART VI: APPENDICES -->
+<!-- ============================================================ -->
+
+<section id="methodology">
+<h2>17. Extraction Methodology</h2>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Stage</th><th>Method</th><th>Detail</th></tr></thead>
+<tbody>
+<tr><td>PDF Ingest</td><td><code>SNOWFLAKE.CORTEX.PARSE_DOCUMENT</code></td><td>Layout mode, page_split: TRUE, per-page text extraction</td></tr>
+<tr><td>Classify</td><td>LLM page classification</td><td>12 page types: cover, TOC, auditor, MD&amp;A, IS, BS, CF, equity, note, exhibit, other</td></tr>
+<tr><td>Identify</td><td>LLM entity extraction</td><td>Org name, FY labels, entity structure</td></tr>
+<tr><td>Statements</td><td>LLM structured JSON extraction</td><td>IS/BS/CF/equity &rarr; native rows with FY columns</td></tr>
+<tr><td>Concept Mapping</td><td>LLM label normalization</td><td>213 native labels &rarr; common taxonomy</td></tr>
+<tr><td>Exhibits</td><td>LLM tabular extraction</td><td>Entity P&amp;L, PPE, investments, debt schedules</td></tr>
+<tr><td>Notes</td><td>LLM footnote extraction</td><td>Body text + structured callouts (amounts, rates, %)</td></tr>
+<tr><td>Stats</td><td>LLM MD&amp;A extraction</td><td>Statistical data points from management discussion</td></tr>
+<tr><td>Insights</td><td>LLM synthesis</td><td>Ratio computation + AI-generated findings</td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin-top:.75rem;font-size:.85rem"><strong>Model:</strong> <code>mistral-large2</code> via <code>SNOWFLAKE.CORTEX.COMPLETE</code> with <code>max_tokens=8192</code> &nbsp;&middot;&nbsp; <strong>Total pages:</strong> 250 across 4 filings</p>
+</section>
+
+<section id="quality">
+<h2>18. Data Quality Notes</h2>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Issue</th><th>Impact</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>FY2020/21 BS gaps (LT debt, unrestricted net assets)</td><td>Debt-to-cap ratio unavailable for these years</td><td>Known gap</td></tr>
+<tr><td>FY coverage from comparison-year audit columns</td><td>FY2020 data sourced from FY2021 audit prior-year column</td><td>Expected</td></tr>
+<tr><td>Professional fees only at entity level for FY2022/2025</td><td>Cannot track full contract labor trend (3 data points only)</td><td>Exhibit coverage varies</td></tr>
+<tr><td>Pension liability intermittent across FYs</td><td>Appears when mapping succeeds; gaps in FY2021, FY2023</td><td>Extraction gap</td></tr>
+<tr><td>2 note batches failed for P21638376 (I/O error)</td><td>2 of 11 note batches lost for one filing</td><td>Transient error</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="noteindex">
+<h2>19. Footnote Index</h2>
+<p>27 footnotes extracted across 4 filings with structured callouts:</p>
+<div style="margin:1rem 0">
+<span class="note-pill"><strong>FY2021</strong> Note 1: Reporting Entity (pp. 24&ndash;25)</span>
+<span class="note-pill"><strong>FY2021</strong> Note 6: Long-Term Obligations (pp. 34&ndash;36)</span>
+<span class="note-pill"><strong>FY2021</strong> Note 7: Pension Plan (pp. 37&ndash;41)</span>
+<span class="note-pill"><strong>FY2021</strong> Note 9: Credit Risk (p. 43)</span>
+<span class="note-pill"><strong>FY2022</strong> Note 1: Reporting Entity (pp. 25&ndash;28)</span>
+<span class="note-pill"><strong>FY2022</strong> Note 6: Long-Term Obligations (pp. 36&ndash;38)</span>
+<span class="note-pill"><strong>FY2022</strong> Note 7: Pension Plan (pp. 39&ndash;42)</span>
+<span class="note-pill"><strong>FY2022</strong> Note 9: Credit Risk (p. 44)</span>
+<span class="note-pill"><strong>FY2023</strong> Note 1: Reporting Entity (pp. 24&ndash;27)</span>
+<span class="note-pill"><strong>FY2023</strong> Note 5: Capital Assets (pp. 33&ndash;34)</span>
+<span class="note-pill"><strong>FY2023</strong> Note 6: Long-Term Obligations (pp. 35&ndash;37)</span>
+<span class="note-pill"><strong>FY2023</strong> Note 7: Investments (p. 38)</span>
+<span class="note-pill"><strong>FY2023</strong> Note 9: Credit Risk (p. 40)</span>
+<span class="note-pill"><strong>FY2025</strong> Note 1: Reporting Entity (pp. 22&ndash;23)</span>
+<span class="note-pill"><strong>FY2025</strong> Note 5: Capital Assets (pp. 33&ndash;36)</span>
+<span class="note-pill"><strong>FY2025</strong> Note 6: Long-Term Obligations (pp. 37&ndash;38)</span>
+<span class="note-pill"><strong>FY2025</strong> Note 7: Long-term Debt (pp. 39&ndash;42)</span>
+<span class="note-pill"><strong>FY2025</strong> Note 9: Credit Risk (p. 44)</span>
+</div>
+</section>
+
+<section id="glossary">
+<h2>20. Glossary</h2>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>Term</th><th>Definition</th></tr></thead>
+<tbody>
+<tr><td><strong>Operating Margin</strong></td><td>Operating Income / Total Operating Revenue &times; 100</td></tr>
+<tr><td><strong>EBIDA Margin</strong></td><td>(Operating Income + D&amp;A) / Total Operating Revenue &times; 100</td></tr>
+<tr><td><strong>Days Cash on Hand</strong></td><td>(Cash + STI + LTI) / ((Total OpEx &minus; D&amp;A) / 365)</td></tr>
+<tr><td><strong>Days in AR</strong></td><td>Patient AR (net) / (Net Patient Service Revenue / 365)</td></tr>
+<tr><td><strong>Debt to Capitalization</strong></td><td>Long-term Debt / (Long-term Debt + Unrestricted Net Assets) &times; 100</td></tr>
+<tr><td><strong>Age of Plant</strong></td><td>Accumulated Depreciation / Annual D&amp;A</td></tr>
+<tr><td>CGH</td><td>Chesapeake General Hospital</td></tr>
+<tr><td>CIP</td><td>Construction in Progress</td></tr>
+<tr><td>D&amp;A</td><td>Depreciation and Amortization</td></tr>
+<tr><td>DSCR</td><td>Debt Service Coverage Ratio</td></tr>
+<tr><td>GPO</td><td>Group Purchasing Organization</td></tr>
+<tr><td>NPL</td><td>Net Pension Liability</td></tr>
+<tr><td>PPE</td><td>Property, Plant &amp; Equipment</td></tr>
+<tr><td>STI / LTI</td><td>Short-term / Long-term Investments</td></tr>
+<tr><td>TOBH</td><td>Tidewater Orthopaedics &amp; Sports Medicine</td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin-top:2rem;text-align:center;color:var(--text-light);font-size:.82rem;border-top:1px solid var(--border);padding-top:1.5rem">Coker &nbsp;&middot;&nbsp; Chesapeake Hospital Authority Financial Analysis &nbsp;&middot;&nbsp; v1.0 &nbsp;&middot;&nbsp; April 20, 2026</p>
+</section>
+
+</div><!-- .main -->
+
+<!-- ============================================================ -->
+<!-- CHART.JS SCRIPTS -->
+<!-- ============================================================ -->
+<script>
+const FY = ['FY2020','FY2021','FY2022','FY2023','FY2024','FY2025'];
+const navy='#1B2A4A',steel='#4A7FB5',accent='#E8833A',green='#2E8B57',red='#C0392B',gray='#94A3B8';
+Chart.defaults.font.family="'Source Sans Pro',sans-serif";
+Chart.defaults.font.size=12;
+Chart.defaults.plugins.legend.labels.usePointStyle=true;
+Chart.defaults.plugins.legend.labels.pointStyleWidth=10;
+
+// 3. IS Trend
+new Chart(document.getElementById('chart-is'),{type:'line',data:{labels:FY,datasets:[
+{label:'Total Revenue',data:[364.2,418.1,425.3,470.1,500.6,526.9],borderColor:steel,backgroundColor:steel+'22',fill:true,tension:.3},
+{label:'Total OpEx',data:[342.3,373.4,391.6,426.9,464.2,494.3],borderColor:red,backgroundColor:red+'22',fill:true,tension:.3},
+{label:'Operating Income',data:[21.9,44.7,33.8,43.2,36.4,32.7],borderColor:green,borderWidth:3,tension:.3,fill:false}
+]},options:{responsive:true,plugins:{title:{display:true,text:'Revenue vs. Expense vs. Operating Income ($M)',font:{size:14,weight:'bold'}}},scales:{y:{title:{display:true,text:'$M'},beginAtZero:true}}}});
+
+// 4. BS Trend
+new Chart(document.getElementById('chart-bs'),{type:'bar',data:{labels:FY,datasets:[
+{label:'Cash & Equivalents',data:[100.6,121.8,81.7,49.2,37.6,26.5],backgroundColor:steel},
+{label:'PPE (net)',data:[null,111.2,100.6,161.1,192.0,187.9],backgroundColor:navy},
+{label:'Patient AR',data:[39.4,47.1,47.3,46.3,49.8,58.8],backgroundColor:accent}
+]},options:{responsive:true,plugins:{title:{display:true,text:'Key Balance Sheet Positions ($M)',font:{size:14,weight:'bold'}}},scales:{y:{title:{display:true,text:'$M'},beginAtZero:true}}}});
+
+// 5. CF Trend
+new Chart(document.getElementById('chart-cf'),{type:'bar',data:{labels:FY,datasets:[
+{label:'Operating CF',data:[9.4,5.8,11.2,11.3,1.7,1.7],backgroundColor:green},
+{label:'Debt Repaid',data:[-2.8,-5.0,-3.9,-3.6,-4.7,-4.9],backgroundColor:red}
+]},options:{responsive:true,plugins:{title:{display:true,text:'Cash Flow Activities ($M)',font:{size:14,weight:'bold'}}},scales:{y:{title:{display:true,text:'$M'}}}}});
+
+// 6. Ratios
+new Chart(document.getElementById('chart-ratios'),{type:'line',data:{labels:FY,datasets:[
+{label:'Operating Margin %',data:[6.01,10.69,7.94,9.20,7.26,6.20],borderColor:navy,tension:.3,yAxisID:'y'},
+{label:'Days Cash on Hand',data:[130.23,134.01,89.07,51.68,37.80,26.19],borderColor:red,borderWidth:3,tension:.3,yAxisID:'y1'}
+]},options:{responsive:true,plugins:{title:{display:true,text:'Operating Margin vs. Days Cash on Hand',font:{size:14,weight:'bold'}}},scales:{y:{type:'linear',position:'left',title:{display:true,text:'Margin %'},min:0,max:15},y1:{type:'linear',position:'right',title:{display:true,text:'Days'},min:0,max:150,grid:{drawOnChartArea:false}}}}});
+
+// 8a. DCOH Numerator
+new Chart(document.getElementById('chart-dcoh-num'),{type:'bar',data:{labels:FY,datasets:[
+{label:'Cash',data:[100.6,121.8,81.7,49.2,37.6,26.5],backgroundColor:steel},
+{label:'Investments',data:[13.5,6.6,7.4,7.5,7.5,6.9],backgroundColor:gray}
+]},options:{responsive:true,plugins:{title:{display:true,text:'Liquid Assets ($M)',font:{size:13,weight:'bold'}}},scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:'$M'}}}}});
+
+// 8b. DCOH Denominator
+new Chart(document.getElementById('chart-dcoh-den'),{type:'line',data:{labels:FY,datasets:[
+{label:'Daily Cash OpEx ($K)',data:[876,958,1000,1096,1192,1273],borderColor:red,backgroundColor:red+'22',fill:true,tension:.3}
+]},options:{responsive:true,plugins:{title:{display:true,text:'Daily Cash Operating Expense ($K/day)',font:{size:13,weight:'bold'}}},scales:{y:{title:{display:true,text:'$K/day'},min:800}}}});
+
+// 9. Labor
+new Chart(document.getElementById('chart-labor'),{type:'bar',data:{labels:FY,datasets:[
+{label:'Salaries',data:[140.3,151.5,161.3,175.5,195.0,209.6],backgroundColor:navy},
+{label:'Benefits',data:[35.3,34.0,30.7,37.3,40.2,42.6],backgroundColor:steel},
+{label:'Purchased Services',data:[23.3,28.1,24.9,28.9,31.6,35.1],backgroundColor:accent}
+]},options:{responsive:true,plugins:{title:{display:true,text:'Labor & Purchased Services ($M)',font:{size:14,weight:'bold'}}},scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:'$M'}}}}});
+
+// 10. Payer Mix
+const payerColors=[navy,steel,green,accent,'#8B5CF6',gray];
+const payerLabels=['Medicare','Anthem','Medicaid','Optima','Self-Pay','Other'];
+new Chart(document.getElementById('chart-payer-21'),{type:'doughnut',data:{labels:payerLabels,datasets:[{data:[33,25,13,7,1,21],backgroundColor:payerColors}]},options:{responsive:true,plugins:{title:{display:true,text:'FY2021 Payer Mix',font:{size:13,weight:'bold'}}}}});
+new Chart(document.getElementById('chart-payer-25'),{type:'doughnut',data:{labels:payerLabels,datasets:[{data:[33,21,10,9,4,23],backgroundColor:payerColors}]},options:{responsive:true,plugins:{title:{display:true,text:'FY2025 Payer Mix',font:{size:13,weight:'bold'}}}}});
+
+// 11. PPE
+new Chart(document.getElementById('chart-ppe'),{type:'line',data:{labels:FY,datasets:[
+{label:'PPE (net)',data:[null,111.2,100.6,161.1,192.0,187.9],borderColor:navy,borderWidth:3,tension:.3},
+{label:'D&A',data:[22.6,23.8,26.6,26.7,29.1,29.6],borderColor:accent,borderDash:[5,5],tension:.3}
+]},options:{responsive:true,plugins:{title:{display:true,text:'Net PPE vs. Depreciation ($M)',font:{size:14,weight:'bold'}}},scales:{y:{title:{display:true,text:'$M'},beginAtZero:true}}}});
+
+// Sidebar active state
+const links=document.querySelectorAll('.sidebar a');
+const sections=document.querySelectorAll('section[id]');
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.remove('active'));const a=document.querySelector('.sidebar a[href="#'+e.target.id+'"]');if(a)a.classList.add('active')}})},{rootMargin:'-20% 0px -70% 0px'});
+sections.forEach(s=>obs.observe(s));
+</script>
+</body>
+</html>
