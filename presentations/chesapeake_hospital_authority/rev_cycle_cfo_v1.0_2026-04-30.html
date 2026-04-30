@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revenue Cycle Opportunity Assessment — Chesapeake Hospital Authority | Coker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Sans+Pro:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--navy:#1B2A4A;--steel:#4A7FB5;--light-bg:#F4F6F8;--accent:#E8833A;--green:#2E8B57;--red:#C0392B;--border:#DEE2E8;--text:#2C3E50;--text-light:#6B7B8D}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Source Sans Pro',sans-serif;color:var(--text);background:#fff;line-height:1.5;font-size:15px}
+h1,h2,h3,h4{font-family:'Inter',sans-serif;font-weight:700;color:var(--navy)}
+
+@media print{
+  .slide{page-break-after:always;box-shadow:none!important;border:none!important}
+  .no-print{display:none}
+}
+
+.container{max-width:1200px;margin:0 auto;padding:1rem}
+
+.slide{
+  width:100%;min-height:680px;padding:2.5rem 3rem;margin-bottom:2rem;
+  border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 4px 24px rgba(27,42,74,.06);
+  position:relative;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.slide::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,var(--navy),var(--steel),var(--accent));
+}
+
+.slide-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.75rem}
+.slide-header h1{font-size:1.6rem;letter-spacing:-.02em}
+.slide-header .brand{font-family:'Inter',sans-serif;font-weight:800;font-size:1.1rem;color:var(--navy);letter-spacing:.03em}
+.slide-header .brand span{color:var(--accent)}
+.slide-subtitle{font-size:.9rem;color:var(--text-light);margin-top:.25rem}
+
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.75rem}
+.kpi{background:var(--light-bg);border-radius:10px;padding:1rem 1.25rem;border:1px solid var(--border);text-align:center}
+.kpi .label{font-size:.65rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-light);font-weight:600;margin-bottom:.25rem}
+.kpi .value{font-size:1.8rem;font-weight:800;font-family:'Inter',sans-serif}
+.kpi .value.red{color:var(--red)}
+.kpi .value.accent{color:var(--accent)}
+.kpi .value.green{color:var(--green)}
+.kpi .value.navy{color:var(--navy)}
+.kpi .sub{font-size:.7rem;color:var(--text-light);margin-top:.2rem}
+
+.two-col{display:grid;grid-template-columns:1.2fr 1fr;gap:2rem;flex:1}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem}
+
+.chart-box{background:var(--light-bg);border-radius:10px;padding:1.25rem;border:1px solid var(--border)}
+.chart-box h3{font-size:.85rem;color:var(--steel);margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.04em}
+.chart-box canvas{width:100%!important;max-height:260px}
+
+.insight-list{list-style:none;padding:0}
+.insight-list li{padding:.6rem 0;border-bottom:1px solid var(--border);font-size:.85rem;display:flex;align-items:flex-start;gap:.5rem}
+.insight-list li:last-child{border-bottom:none}
+.insight-list .icon{flex-shrink:0;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fff}
+.insight-list .icon.red{background:var(--red)}
+.insight-list .icon.amber{background:var(--accent)}
+.insight-list .icon.green{background:var(--green)}
+
+.callout-box{background:#fde8e8;border-left:4px solid var(--red);border-radius:6px;padding:.85rem 1rem;margin-top:1rem;font-size:.82rem;color:#991b1b;line-height:1.5}
+.callout-box strong{color:var(--red)}
+
+.opp-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:.5rem}
+.opp-table thead th{background:var(--navy);color:#fff;padding:.6rem .75rem;text-align:left;font-family:'Inter',sans-serif;font-weight:600;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em}
+.opp-table thead th.num{text-align:right}
+.opp-table tbody td{padding:.55rem .75rem;border-bottom:1px solid var(--border)}
+.opp-table tbody tr:nth-child(even){background:var(--light-bg)}
+.opp-table td.num{text-align:right;font-family:'JetBrains Mono',monospace;font-size:.78rem}
+.opp-table td.green{color:var(--green);font-weight:600}
+.opp-table td.bold{font-weight:700}
+.opp-table .priority{display:inline-block;padding:.15rem .5rem;border-radius:4px;font-size:.65rem;font-weight:700;text-transform:uppercase}
+.opp-table .priority.imm{background:#dcfce7;color:#166534}
+.opp-table .priority.near{background:#fef3e2;color:#92400e}
+
+.total-bar{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--navy),#2a4270);border-radius:10px;padding:1rem 1.5rem;margin-top:1rem;color:#fff}
+.total-bar .total-label{font-size:.85rem;font-weight:600;opacity:.8}
+.total-bar .total-value{font-size:1.8rem;font-weight:800;font-family:'Inter',sans-serif}
+.total-bar .total-sub{font-size:.75rem;opacity:.6;margin-top:.1rem}
+
+.timeline-bar{display:flex;gap:0;margin-top:1.25rem;border-radius:8px;overflow:hidden;height:36px}
+.timeline-bar .seg{display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fff;letter-spacing:.03em}
+.timeline-bar .seg.q1{background:var(--green);flex:1}
+.timeline-bar .seg.q2{background:var(--steel);flex:1}
+.timeline-bar .seg.q3{background:var(--accent);flex:1}
+.timeline-bar .seg.q4{background:var(--navy);flex:1}
+.timeline-labels{display:flex;gap:0;margin-top:.35rem}
+.timeline-labels .seg{flex:1;text-align:center;font-size:.65rem;color:var(--text-light)}
+
+.footer{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:1rem;border-top:1px solid var(--border);font-size:.72rem;color:var(--text-light)}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ===== SLIDE 1: CURRENT STATE DIAGNOSIS ===== -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <h1>Revenue Cycle Performance Assessment</h1>
+      <div class="slide-subtitle">Chesapeake Hospital Authority — FY2020–FY2025 Trend Analysis</div>
+    </div>
+    <div class="brand">COKER<span>.</span></div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi">
+      <div class="label">Days in AR (FY2025)</div>
+      <div class="value red">42.2</div>
+      <div class="sub">+4.6 days YoY | Target: 35</div>
+    </div>
+    <div class="kpi">
+      <div class="label">AR Growth Index</div>
+      <div class="value red">3.55x</div>
+      <div class="sub">AR growing 3.5x faster than revenue</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Cash Collection Rate</div>
+      <div class="value red">0.34%</div>
+      <div class="sub">Benchmark: 5–8% | Down from 2.7%</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Self-Pay Exposure</div>
+      <div class="value accent">$20.4M</div>
+      <div class="sub">Tripled from $7M (FY2020)</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="chart-box">
+        <h3>Days AR vs. Cash Collection Rate (FY2020–FY2025)</h3>
+        <canvas id="chartDualAxis"></canvas>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:.9rem;margin-bottom:.5rem;">Root Cause Drivers</h3>
+      <ul class="insight-list">
+        <li><span class="icon red">1</span><span><strong>Payer yield erosion:</strong> Anthem (highest reimbursement) down 26%→21% of mix; −$25M in foregone premium revenue</span></li>
+        <li><span class="icon red">2</span><span><strong>Self-pay growth unchecked:</strong> 2%→4% of AR; est. $14M uncollectible at 30% yield rate</span></li>
+        <li><span class="icon amber">3</span><span><strong>Collection capacity gap:</strong> Revenue +45% over 5 yrs; AR staff/systems not scaled — FY2025 AR grew $9M in single year</span></li>
+        <li><span class="icon amber">4</span><span><strong>Denial volatility:</strong> 3rd party liability spiked 3.3x to $12.2M in FY2023; pattern suggests coding/auth gaps</span></li>
+        <li><span class="icon amber">5</span><span><strong>Operating CF collapse:</strong> $9.4M→$1.7M despite $158M revenue growth; cash not flowing from operations</span></li>
+      </ul>
+      <div class="callout-box">
+        <strong>Bottom line:</strong> CHA is running a $509M revenue engine that converts only $1.7M to operating cash. The rev cycle is the primary correctable lever — every 1 day of AR improvement frees $1.4M in working capital.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Chesapeake Hospital Authority | Revenue Cycle Opportunity Assessment</span>
+    <span>April 2026 | Slide 1 of 2</span>
+  </div>
+</div>
+
+<!-- ===== SLIDE 2: OPPORTUNITY & PLAYBOOK ===== -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <h1>Revenue Cycle Improvement Opportunity</h1>
+      <div class="slide-subtitle">Prioritized initiatives with estimated financial impact — $25–39M addressable annually</div>
+    </div>
+    <div class="brand">COKER<span>.</span></div>
+  </div>
+
+  <div class="table-wrapper" style="overflow-x:auto;border-radius:8px;border:1px solid var(--border);">
+    <table class="opp-table">
+      <thead>
+        <tr>
+          <th>Initiative</th>
+          <th>Priority</th>
+          <th class="num">Year 1 Impact</th>
+          <th class="num">Steady State</th>
+          <th>Key Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="bold">Self-Pay Financial Counseling & POS Collections</td>
+          <td><span class="priority imm">Immediate</span></td>
+          <td class="num green">$4–7M</td>
+          <td class="num green">$6–9M</td>
+          <td>Deploy counselors at registration; payment plans; charity screening</td>
+        </tr>
+        <tr>
+          <td class="bold">Denial Management Program</td>
+          <td><span class="priority imm">Immediate</span></td>
+          <td class="num green">$3–5M</td>
+          <td class="num green">$5–7M</td>
+          <td>Dedicated team; 72-hr SLA; payer-specific appeal playbooks</td>
+        </tr>
+        <tr>
+          <td class="bold">AR Staffing & Capacity Alignment</td>
+          <td><span class="priority imm">Immediate</span></td>
+          <td class="num green">$7.2M*</td>
+          <td class="num">—</td>
+          <td>Scale follow-up FTEs; target 60+ day aging; RPA for posting</td>
+        </tr>
+        <tr>
+          <td class="bold">Managed Care Contract Optimization</td>
+          <td><span class="priority near">Near-Term</span></td>
+          <td class="num">—</td>
+          <td class="num green">$8–12M</td>
+          <td>Renegotiate Optima rates; model carve-outs; auto-adjudication</td>
+        </tr>
+        <tr>
+          <td class="bold">CDI & Coding Accuracy</td>
+          <td><span class="priority near">Near-Term</span></td>
+          <td class="num green">$2–4M</td>
+          <td class="num green">$4–7M</td>
+          <td>3–5 CDI specialists; target sepsis/malnutrition DRGs; CMI lift</td>
+        </tr>
+        <tr>
+          <td class="bold">Revenue Integrity & Charge Capture</td>
+          <td><span class="priority near">Near-Term</span></td>
+          <td class="num green">$1–2M</td>
+          <td class="num green">$2–4M</td>
+          <td>Audit charge master; identify missed charges; procedure coding</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="font-size:.7rem;color:var(--text-light);margin-top:.35rem">*One-time working capital release from 5.2-day AR reduction (42.2→37.0 days)</div>
+
+  <div class="total-bar">
+    <div>
+      <div class="total-label">Total Addressable Opportunity</div>
+      <div class="total-sub">Annual run-rate at steady state (4.7–7.4% of NPSR)</div>
+    </div>
+    <div style="text-align:right">
+      <div class="total-value">$25–39M</div>
+      <div class="total-sub">+ $7.2M one-time working capital release</div>
+    </div>
+  </div>
+
+  <div style="margin-top:1.25rem">
+    <h3 style="font-size:.85rem;color:var(--steel);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem">Implementation Timeline</h3>
+    <div class="timeline-bar">
+      <div class="seg q1">Q1–Q2</div>
+      <div class="seg q2">Q3–Q4</div>
+      <div class="seg q3">Year 2 H1</div>
+      <div class="seg q4">Year 2 H2</div>
+    </div>
+    <div class="timeline-labels">
+      <div class="seg">Self-Pay + Denials + AR Staff<br><strong style="color:var(--green)">$14–19M impact</strong></div>
+      <div class="seg">CDI + Rev Integrity + Prior Auth<br><strong style="color:var(--steel)">$3–6M incremental</strong></div>
+      <div class="seg">Contract Renegotiation<br><strong style="color:var(--accent)">$5–10M incremental</strong></div>
+      <div class="seg">Full Run-Rate<br><strong style="color:var(--navy)">$25–39M/yr</strong></div>
+    </div>
+  </div>
+
+  <div class="three-col" style="margin-top:1.25rem">
+    <div style="background:var(--light-bg);border-radius:8px;padding:.85rem 1rem;border:1px solid var(--border)">
+      <h4 style="font-size:.75rem;color:var(--steel);text-transform:uppercase;margin-bottom:.35rem">Target: Days AR</h4>
+      <div style="font-family:'Inter',sans-serif;font-weight:800;font-size:1.3rem;color:var(--navy)">42.2 → 35.0</div>
+      <div style="font-size:.7rem;color:var(--text-light)">24-month target | $10.0M freed</div>
+    </div>
+    <div style="background:var(--light-bg);border-radius:8px;padding:.85rem 1rem;border:1px solid var(--border)">
+      <h4 style="font-size:.75rem;color:var(--steel);text-transform:uppercase;margin-bottom:.35rem">Target: CF Margin</h4>
+      <div style="font-family:'Inter',sans-serif;font-weight:800;font-size:1.3rem;color:var(--navy)">0.3% → 5.0%</div>
+      <div style="font-size:.7rem;color:var(--text-light)">24-month target | Peer benchmark: 8–12%</div>
+    </div>
+    <div style="background:var(--light-bg);border-radius:8px;padding:.85rem 1rem;border:1px solid var(--border)">
+      <h4 style="font-size:.75rem;color:var(--steel);text-transform:uppercase;margin-bottom:.35rem">Target: Clean Claim Rate</h4>
+      <div style="font-family:'Inter',sans-serif;font-weight:800;font-size:1.3rem;color:var(--navy)">Baseline → 96%</div>
+      <div style="font-size:.7rem;color:var(--text-light)">24-month target | Industry best: 97%+</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Chesapeake Hospital Authority | Revenue Cycle Opportunity Assessment</span>
+    <span>April 2026 | Slide 2 of 2</span>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+const navy='#1B2A4A',steel='#4A7FB5',accent='#E8833A',red='#C0392B',green='#2E8B57';
+
+// Slide 1: Dual-axis chart
+const ctx1=document.getElementById('chartDualAxis').getContext('2d');
+new Chart(ctx1,{
+  type:'bar',
+  data:{
+    labels:['FY2020','FY2021','FY2022','FY2023','FY2024','FY2025'],
+    datasets:[
+      {
+        label:'Days in AR',
+        data:[40.9,42.7,42.1,37.2,37.6,42.2],
+        backgroundColor:[steel,steel,steel,green,green,red],
+        borderRadius:4,
+        yAxisID:'y',
+        order:2
+      },
+      {
+        label:'Cash Collection Rate (%)',
+        data:[2.69,1.45,2.73,2.50,0.35,0.34],
+        type:'line',
+        borderColor:accent,
+        backgroundColor:accent+'33',
+        borderWidth:3,
+        pointRadius:5,
+        pointBackgroundColor:accent,
+        tension:.3,
+        fill:true,
+        yAxisID:'y1',
+        order:1
+      }
+    ]
+  },
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{position:'bottom',labels:{font:{size:11,family:'Inter'},usePointStyle:true,pointStyle:'rectRounded'}}
+    },
+    scales:{
+      y:{position:'left',title:{display:true,text:'Days in AR',font:{size:11,family:'Inter',weight:'600'}},min:30,max:50,grid:{color:'#eee'}},
+      y1:{position:'right',title:{display:true,text:'Cash Collection %',font:{size:11,family:'Inter',weight:'600'}},min:0,max:4,grid:{drawOnChartArea:false},ticks:{callback:v=>v.toFixed(1)+'%'}}
+    }
+  }
+});
+</script>
+</body>
+</html>
