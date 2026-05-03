@@ -5,7 +5,7 @@ account = "AK31825-EW53848"
 user = "NATHANCOHEN"
 authenticator = "SNOWFLAKE_JWT"
 private_key_path = "C:/snowflake_keys/snowflake_key.p8"
-private_key_passphrase = "coker2026"
+# Set SNOWFLAKE_PRIVATE_KEY_PASSPHRASE env var instead of hardcoding here
 warehouse = "COMPUTE_WH"
 database = "AUDITED_FINANCIALS"
 schema = "COMMON"
