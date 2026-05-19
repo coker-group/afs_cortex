@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Margin Improvement Opportunity Assessment — Chesapeake Hospital Authority | Coker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Sans+Pro:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--navy:#1B2A4A;--steel:#4A7FB5;--light-bg:#F4F6F8;--accent:#E8833A;--green:#2E8B57;--red:#C0392B;--border:#DEE2E8;--text:#2C3E50;--text-light:#6B7B8D;--purple:#6B5B95}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Source Sans Pro',sans-serif;color:var(--text);background:#fff;line-height:1.5;font-size:15px}
+h1,h2,h3,h4{font-family:'Inter',sans-serif;font-weight:700;color:var(--navy)}
+
+@media print{
+  .slide{page-break-after:always;box-shadow:none!important;border:none!important;margin:0!important}
+  body{padding:0}
+}
+
+.container{max-width:1240px;margin:0 auto;padding:1rem}
+
+.slide{
+  width:100%;min-height:700px;padding:2.5rem 3rem;margin-bottom:2rem;
+  border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 4px 24px rgba(27,42,74,.06);
+  position:relative;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.slide::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,var(--navy),var(--steel),var(--accent));
+}
+
+.slide-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem}
+.slide-header h1{font-size:1.55rem;letter-spacing:-.02em}
+.slide-header .brand{font-family:'Inter',sans-serif;font-weight:800;font-size:1.1rem;color:var(--navy);letter-spacing:.03em}
+.slide-header .brand span{color:var(--accent)}
+.slide-subtitle{font-size:.85rem;color:var(--text-light);margin-top:.2rem}
+
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:.85rem;margin-bottom:1.5rem}
+.kpi-strip.four{grid-template-columns:repeat(4,1fr)}
+.kpi{background:var(--light-bg);border-radius:10px;padding:.85rem 1rem;border:1px solid var(--border);text-align:center}
+.kpi .label{font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-light);font-weight:600;margin-bottom:.2rem}
+.kpi .value{font-size:1.5rem;font-weight:800;font-family:'Inter',sans-serif}
+.kpi .value.red{color:var(--red)}
+.kpi .value.accent{color:var(--accent)}
+.kpi .value.green{color:var(--green)}
+.kpi .value.navy{color:var(--navy)}
+.kpi .value.purple{color:var(--purple)}
+.kpi .sub{font-size:.67rem;color:var(--text-light);margin-top:.15rem}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:2rem;flex:1}
+.two-col.wide-left{grid-template-columns:1.3fr 1fr}
+.two-col.wide-right{grid-template-columns:1fr 1.3fr}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+
+.chart-box{background:var(--light-bg);border-radius:10px;padding:1.15rem;border:1px solid var(--border)}
+.chart-box h3{font-size:.78rem;color:var(--steel);margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.04em}
+.chart-box canvas{width:100%!important;max-height:240px}
+
+table.data{width:100%;border-collapse:collapse;font-size:.8rem;margin:.5rem 0}
+table.data thead th{background:var(--navy);color:#fff;padding:.5rem .65rem;text-align:left;font-family:'Inter',sans-serif;font-weight:600;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em}
+table.data thead th.num{text-align:right}
+table.data tbody td{padding:.45rem .65rem;border-bottom:1px solid var(--border)}
+table.data tbody tr:nth-child(even){background:var(--light-bg)}
+table.data td.num{text-align:right;font-family:'JetBrains Mono',monospace;font-size:.76rem}
+table.data td.green{color:var(--green);font-weight:600}
+table.data td.red{color:var(--red);font-weight:600}
+table.data td.bold{font-weight:700}
+table.data tfoot td{border-top:2px solid var(--navy);font-weight:700;padding:.55rem .65rem;font-family:'Inter',sans-serif;font-size:.78rem}
+
+.priority{display:inline-block;padding:.15rem .5rem;border-radius:4px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.priority.imm{background:#dcfce7;color:#166534}
+.priority.near{background:#fef3e2;color:#92400e}
+.priority.strat{background:#ede9fe;color:#5b21b6}
+
+.insight-list{list-style:none;padding:0}
+.insight-list li{padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.82rem;display:flex;align-items:flex-start;gap:.5rem}
+.insight-list li:last-child{border-bottom:none}
+.insight-icon{flex-shrink:0;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff}
+
+.callout{padding:.85rem 1rem;border-radius:6px;margin:.75rem 0;font-size:.82rem;line-height:1.5}
+.callout.critical{background:#fde8e8;border-left:4px solid var(--red);color:#991b1b}
+.callout.info{background:#e8f0fe;border-left:4px solid var(--steel);color:#1e40af}
+.callout.success{background:#dcfce7;border-left:4px solid var(--green);color:#166534}
+
+.waterfall{display:flex;align-items:flex-end;gap:2px;height:180px;margin:1rem 0;padding-bottom:1.5rem;position:relative}
+.waterfall::after{content:'';position:absolute;bottom:1.5rem;left:0;right:0;height:1px;background:var(--border)}
+.wf-bar{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
+.wf-bar .bar{width:80%;border-radius:3px 3px 0 0;position:relative}
+.wf-bar .bar.pos{background:var(--green)}
+.wf-bar .bar.neg{background:var(--red);border-radius:0 0 3px 3px}
+.wf-bar .bar.total{background:var(--navy)}
+.wf-bar .lbl{font-size:.58rem;color:var(--text-light);margin-top:.3rem;text-align:center;line-height:1.2}
+.wf-bar .val{font-size:.62rem;font-weight:700;font-family:'JetBrains Mono',monospace;position:absolute;top:-16px;left:50%;transform:translateX(-50%);white-space:nowrap}
+
+.total-bar{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--navy),#2a4270);border-radius:10px;padding:1rem 1.5rem;margin-top:.75rem;color:#fff}
+.total-bar .total-label{font-size:.82rem;font-weight:600;opacity:.85}
+.total-bar .total-sub{font-size:.7rem;opacity:.55;margin-top:.1rem}
+.total-bar .total-value{font-size:1.7rem;font-weight:800;font-family:'Inter',sans-serif}
+
+.timeline-row{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr;gap:0;margin-top:.5rem;font-size:.72rem;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.timeline-row .tl-label{padding:.45rem .65rem;background:var(--light-bg);font-weight:600;border-right:1px solid var(--border);display:flex;align-items:center}
+.timeline-row .tl-cell{padding:.45rem .4rem;text-align:center;border-right:1px solid var(--border)}
+.timeline-row .tl-cell:last-child{border-right:none}
+.timeline-row .tl-cell.active{background:var(--green);color:#fff;font-weight:700}
+.timeline-row .tl-cell.partial{background:#bbf7d0;color:#166534;font-weight:600}
+.timeline-row .tl-cell.planned{background:#fef3e2;color:#92400e}
+.timeline-head{font-family:'Inter',sans-serif;font-weight:700;font-size:.68rem;text-transform:uppercase;background:var(--navy)!important;color:#fff!important}
+
+.footer{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:.75rem;border-top:1px solid var(--border);font-size:.7rem;color:var(--text-light)}
+
+.cat-pill{display:inline-block;padding:.2rem .55rem;border-radius:12px;font-size:.62rem;font-weight:600;margin-right:.25rem}
+.cat-pill.rev{background:#dbeafe;color:#1e40af}
+.cat-pill.labor{background:#fce7f3;color:#9d174d}
+.cat-pill.supply{background:#fef3e2;color:#92400e}
+.cat-pill.capital{background:#ede9fe;color:#5b21b6}
+.cat-pill.strat{background:#d1fae5;color:#065f46}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ===== SLIDE 1: EXECUTIVE SUMMARY — THE MARGIN PROBLEM ===== -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <h1>Margin Improvement Opportunity Assessment</h1>
+      <div class="slide-subtitle">Chesapeake Hospital Authority — Executive Summary | FY2020–FY2025</div>
+    </div>
+    <div class="brand">COKER<span>.</span></div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi">
+      <div class="label">Operating Margin</div>
+      <div class="value red">6.2%</div>
+      <div class="sub">Down from 10.7% peak (FY2021)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">EBIDA Margin</div>
+      <div class="value accent">11.8%</div>
+      <div class="sub">Down from 16.4% peak</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Days Cash on Hand</div>
+      <div class="value red">26</div>
+      <div class="sub">Down from 134 | Covenant risk</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Operating CF</div>
+      <div class="value navy">$30.4M</div>
+      <div class="sub">Down from $71.1M (FY2020)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Total Opportunity</div>
+      <div class="value green">$45–75M</div>
+      <div class="sub">8.5–14.2% of revenue</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="chart-box">
+        <h3>Margin Compression Trajectory (FY2020–FY2025)</h3>
+        <canvas id="chartMarginTrend"></canvas>
+      </div>
+      <div class="callout critical" style="margin-top:.75rem">
+        <strong>The core problem:</strong> Revenue grew $163M (+45%) but operating income fell $12M (−27%) from FY2021 peak. Expenses grew faster than revenue in 4 of 5 years. At current trajectory, CHA reaches breakeven by FY2027.
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:.85rem;margin-bottom:.5rem">Opportunity by Category</h3>
+      <div class="chart-box" style="padding:1rem">
+        <canvas id="chartOppBreakdown"></canvas>
+      </div>
+      <div style="margin-top:.85rem">
+        <h4 style="font-size:.78rem;color:var(--steel);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">Key Drivers of Erosion</h4>
+        <ul class="insight-list">
+          <li><span class="insight-icon" style="background:var(--red)">1</span><span><strong>Labor +$76.6M</strong> (+44%) — contract labor up 40%, pension swing $16M</span></li>
+          <li><span class="insight-icon" style="background:var(--accent)">2</span><span><strong>Supplies +$40.4M</strong> (+56%) — outpacing volume; 21.3% vs 18% benchmark</span></li>
+          <li><span class="insight-icon" style="background:var(--purple)">3</span><span><strong>Rev cycle yield eroding</strong> — AR +49% (growing 3.5x faster than revenue); Days AR up +4.6 days YoY</span></li>
+          <li><span class="insight-icon" style="background:var(--steel)">4</span><span><strong>Payer mix shift</strong> — Anthem −5pp = $15–25M foregone yield</span></li>
+          <li><span class="insight-icon" style="background:var(--navy)">5</span><span><strong>Capital consumed cash</strong> — $95M liquidity burned; PPE doubled</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Chesapeake Hospital Authority | Margin Improvement Opportunity Assessment</span>
+    <span>April 2026 | Slide 1 of 6</span>
+  </div>
+</div>
+
+<!-- ===== SLIDE 2: LABOR & WORKFORCE ===== -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <h1>Labor & Workforce Optimization</h1>
+      <div class="slide-subtitle"><span class="cat-pill labor">Labor</span> 47.9% of revenue — $252M annual spend | Opportunity: $12–22M</div>
+    </div>
+    <div class="brand">COKER<span>.</span></div>
+  </div>
+
+  <div class="kpi-strip four">
+    <div class="kpi">
+      <div class="label">Total Labor Cost</div>
+      <div class="value navy">$252.2M</div>
+      <div class="sub">47.9% of revenue (FY2025)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">5-Year Labor Growth</div>
+      <div class="value red">+$76.6M</div>
+      <div class="sub">+44% | Revenue grew 45%</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Contract Labor (CGH)</div>
+      <div class="value accent">$38.9M</div>
+      <div class="sub">Up from $27.8M (+40% since FY2022)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Pension Liability</div>
+      <div class="value accent">$18.7M</div>
+      <div class="sub">Peaked $24.6M (FY2024)</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="chart-box">
+        <h3>Labor Cost as % of Revenue vs. Industry Benchmark (FY2020–FY2025)</h3>
+        <canvas id="chartLabor"></canvas>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:.85rem;margin-bottom:.5rem">Improvement Initiatives</h3>
+      <table class="data">
+        <thead>
+          <tr><th>Initiative</th><th>Priority</th><th class="num">Impact</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold">Convert contract labor to employed</td>
+            <td><span class="priority near">Near-Term</span></td>
+            <td class="num green">$5–8M</td>
+          </tr>
+          <tr>
+            <td class="bold">Productivity benchmarking & staffing model</td>
+            <td><span class="priority imm">Immediate</span></td>
+            <td class="num green">$3–6M</td>
+          </tr>
+          <tr>
+            <td class="bold">Benefits plan redesign (high-cost claimants)</td>
+            <td><span class="priority near">Near-Term</span></td>
+            <td class="num green">$2–4M</td>
+          </tr>
+          <tr>
+            <td class="bold">Pension assumption & contribution review</td>
+            <td><span class="priority strat">Strategic</span></td>
+            <td class="num green">$1–2M</td>
+          </tr>
+          <tr>
+            <td class="bold">Retention program (reduce turnover premium)</td>
+            <td><span class="priority near">Near-Term</span></td>
+            <td class="num green">$1–2M</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr><td colspan="2">Total Labor Opportunity</td><td class="num" style="color:var(--green)">$12–22M</td></tr>
+        </tfoot>
+      </table>
+      <div class="callout info">
+        <strong>Contract labor conversion:</strong> CGH professional fees grew $11.1M (+40%) in 3 years. Converting 50% to employed staff at 70% of contract rates yields $5–8M savings while improving care continuity.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Chesapeake Hospital Authority | Margin Improvement Opportunity Assessment</span>
+    <span>April 2026 | Slide 2 of 6</span>
+  </div>
+</div>
+
+<!-- ===== SLIDE 3: SUPPLY CHAIN & NON-LABOR COSTS ===== -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <h1>Supply Chain & Non-Labor Cost Reduction</h1>
+      <div class="slide-subtitle"><span class="cat-pill supply">Supply Chain</span> <span class="cat-pill capital">Purchased Services</span> Combined $207.9M (39.4% of revenue) | Opportunity: $8–16M</div>
+    </div>
+    <div class="brand">COKER<span>.</span></div>
+  </div>
+
+  <div class="kpi-strip four">
+    <div class="kpi">
+      <div class="label">Supplies Expense</div>
+      <div class="value navy">$112.1M</div>
+      <div class="sub">21.3% of revenue vs 18% benchmark</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Supplies 5-Year Growth</div>
+      <div class="value red">+56%</div>
+      <div class="sub">+$40.4M | Revenue grew 45%</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Purchased Services</div>
+      <div class="value accent">$35.1M</div>
+      <div class="sub">7.1% of OpEx | Growing steadily</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Other Operating Exp</div>
+      <div class="value navy">$60.7M</div>
+      <div class="sub">+33% over 5 years</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="chart-box">
+        <h3>All Expense Categories as % of Revenue vs. Benchmarks (FY2020–FY2025)</h3>
+        <canvas id="chartExpPctRev" style="max-height:280px"></canvas>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:.85rem;margin-bottom:.5rem">Improvement Initiatives</h3>
+      <table class="data">
+        <thead>
+          <tr><th>Initiative</th><th>Priority</th><th class="num">Impact</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold">GPO contract renegotiation & tier optimization</td>
+            <td><span class="priority imm">Immediate</span></td>
+            <td class="num green">$3–6M</td>
+          </tr>
+          <tr>
+            <td class="bold">Physician preference item (PPI) standardization</td>
+            <td><span class="priority near">Near-Term</span></td>
+            <td class="num green">$2–4M</td>
+          </tr>
+          <tr>
+            <td class="bold">Purchased services consolidation & rebid</td>
+            <td><span class="priority near">Near-Term</span></td>
+            <td class="num green">$1.5–3M</td>
+          </tr>
+          <tr>
+            <td class="bold">Perioperative supply utilization (waste reduction)</td>
+            <td><span class="priority imm">Immediate</span></td>
+            <td class="num green">$1–2M</td>
+          </tr>
+          <tr>
+            <td class="bold">Inventory management (par levels, automation)</td>
+            <td><span class="priority near">Near-Term</span></td>
+            <td class="num green">$0.5–1M</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr><td colspan="2">Total Non-Labor Opportunity</td><td class="num" style="color:var(--green)">$8–16M</td></tr>
+        </tfoot>
+      </table>
+      <div class="callout info">
+        <strong>Benchmark gap:</strong> At 21.3% of revenue, CHA is 3.3 pp above the 18% Moody's median for supplies. On a $527M revenue base, each 1 pp reduction = $5.3M in savings. Closing half the gap to 19.6% yields $8.9M.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Chesapeake Hospital Authority | Margin Improvement Opportunity Assessment</span>
+    <span>April 2026 | Slide 3 of 6</span>
+  </div>
+</div>
+
+<!-- ===== SLIDE 4: REVENUE CYCLE & REVENUE ENHANCEMENT ===== -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <h1>Revenue Cycle & Revenue Enhancement</h1>
+      <div class="slide-subtitle"><span class="cat-pill rev">Revenue Cycle</span> <span class="cat-pill strat">Payer Strategy</span> $509M net patient revenue with structural yield erosion | NR Opportunity: $17–32M + $7.2M Cash Acceleration</div>
+    </div>
+    <div class="brand">COKER<span>.</span></div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi">
+      <div class="label">Days in AR</div>
+      <div class="value red">42.2</div>
+      <div class="sub">+4.6 days YoY</div>
+    </div>
+    <div class="kpi">
+      <div class="label">AR Growth Index</div>
+      <div class="value red">3.55x</div>
+      <div class="sub">AR growing 3.5x revenue</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Self-Pay Exposure</div>
+      <div class="value accent">$20.4M</div>
+      <div class="sub">Tripled from $7M</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Payer Yield Loss</div>
+      <div class="value red">−$15–25M</div>
+      <div class="sub">Anthem −5pp; Self-Pay +2pp</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Operating CF Margin</div>
+      <div class="value accent">5.8%</div>
+      <div class="sub">Benchmark: 8–12% | Declining trend</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="chart-box">
+        <h3>AR Balance vs. Daily Revenue Earned (FY2020–FY2025)</h3>
+        <canvas id="chartAR"></canvas>
+      </div>
+      <div class="chart-box" style="margin-top:.85rem">
+        <h3>Payer Mix Shift — Revenue Impact</h3>
+        <canvas id="chartPayer"></canvas>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:.85rem;margin-bottom:.5rem">Improvement Initiatives</h3>
+      <table class="data">
+        <thead>
+          <tr><th>Initiative</th><th>Priority</th><th class="num">Impact</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold">Managed care contract renegotiation</td>
+            <td><span class="priority strat">Strategic</span></td>
+            <td class="num green">$5–10M</td>
+          </tr>
+          <tr>
+            <td class="bold">Self-pay counseling & POS collections</td>
+            <td><span class="priority imm">Immediate</span></td>
+            <td class="num green">$4–7M</td>
+          </tr>
+          <tr>
+            <td class="bold">Denial management program</td>
+            <td><span class="priority imm">Immediate</span></td>
+            <td class="num green">$3–5M</td>
+          </tr>
+          <tr>
+            <td class="bold">CDI & coding accuracy (CMI lift)</td>
+            <td><span class="priority near">Near-Term</span></td>
+            <td class="num green">$3–6M</td>
+          </tr>
+          <tr>
+            <td class="bold">AR staffing & automation (Cash Acceleration)</td>
+            <td><span class="priority imm">Immediate</span></td>
+            <td class="num navy">$7.2M (CA)</td>
+          </tr>
+          <tr>
+            <td class="bold">Revenue integrity & charge capture</td>
+            <td><span class="priority near">Near-Term</span></td>
+            <td class="num green">$2–4M</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr><td colspan="2">Total Net Revenue Opportunity</td><td class="num" style="color:var(--green)">$17–32M</td></tr>
+          <tr><td colspan="2">Cash Acceleration (one-time)</td><td class="num" style="color:var(--navy)">$7.2M</td></tr>
+        </tfoot>
+      </table>
+      <div class="callout critical">
+        <strong>Urgency signal:</strong> FY2025 AR grew $9.0M (+18%) while revenue grew only $24.8M (+5%). The AR Growth Index of 3.55x signals collections infrastructure has not scaled with volume. Reducing Days AR from 42.2 → 37.0 frees $7.2M in working capital immediately.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Chesapeake Hospital Authority | Margin Improvement Opportunity Assessment</span>
+    <span>April 2026 | Slide 4 of 6</span>
+  </div>
+</div>
+
+<!-- ===== SLIDE 5: CONSOLIDATED ROADMAP & FINANCIAL BRIDGE ===== -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <h1>Consolidated Roadmap & Financial Bridge</h1>
+      <div class="slide-subtitle">Path from 6.2% operating margin to 10%+ within 24 months — $45–77M net revenue + $7.2M cash acceleration</div>
+    </div>
+    <div class="brand">COKER<span>.</span></div>
+  </div>
+
+  <div class="two-col wide-left">
+    <div>
+      <h3 style="font-size:.85rem;margin-bottom:.5rem">Margin Bridge — FY2025 Actual to Target</h3>
+      <div class="chart-box">
+        <canvas id="chartBridge" style="max-height:200px"></canvas>
+      </div>
+
+      <h3 style="font-size:.85rem;margin-bottom:.5rem;margin-top:1rem">Implementation Phasing</h3>
+      <div class="timeline-row">
+        <div class="tl-label timeline-head">Initiative</div>
+        <div class="tl-cell timeline-head">Q1–Q2</div>
+        <div class="tl-cell timeline-head">Q3–Q4</div>
+        <div class="tl-cell timeline-head">Yr 2 H1</div>
+        <div class="tl-cell timeline-head">Yr 2 H2</div>
+      </div>
+      <div class="timeline-row">
+        <div class="tl-label"><span class="cat-pill rev">Rev</span> Self-Pay + Denials + CDI</div>
+        <div class="tl-cell active">$5–9M</div>
+        <div class="tl-cell active">Run-rate</div>
+        <div class="tl-cell partial">Optimize</div>
+        <div class="tl-cell partial">Optimize</div>
+      </div>
+      <div class="timeline-row">
+        <div class="tl-label"><span class="cat-pill labor">Labor</span> Productivity + Contract</div>
+        <div class="tl-cell partial">Assess</div>
+        <div class="tl-cell active">$6–10M</div>
+        <div class="tl-cell active">Run-rate</div>
+        <div class="tl-cell active">Run-rate</div>
+      </div>
+      <div class="timeline-row">
+        <div class="tl-label"><span class="cat-pill supply">Supply</span> GPO + PPI + Waste</div>
+        <div class="tl-cell partial">RFP</div>
+        <div class="tl-cell active">$4–7M</div>
+        <div class="tl-cell active">Run-rate</div>
+        <div class="tl-cell active">Run-rate</div>
+      </div>
+      <div class="timeline-row">
+        <div class="tl-label"><span class="cat-pill rev">Rev</span> CDI + Charge Capture</div>
+        <div class="tl-cell planned">Hire CDI</div>
+        <div class="tl-cell partial">Ramp</div>
+        <div class="tl-cell active">$4–8M</div>
+        <div class="tl-cell active">Run-rate</div>
+      </div>
+      <div class="timeline-row">
+        <div class="tl-label"><span class="cat-pill strat">Strat</span> Payer Contracts</div>
+        <div class="tl-cell planned">Analysis</div>
+        <div class="tl-cell planned">Negotiate</div>
+        <div class="tl-cell partial">Implement</div>
+        <div class="tl-cell active">$5–10M</div>
+      </div>
+      <div class="timeline-row">
+        <div class="tl-label"><span class="cat-pill capital">Capital</span> Foundation + CapEx</div>
+        <div class="tl-cell partial">Board</div>
+        <div class="tl-cell partial">Structure</div>
+        <div class="tl-cell active">$5–10M</div>
+        <div class="tl-cell active">Ongoing</div>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:.85rem;margin-bottom:.5rem">Summary by Category</h3>
+      <table class="data">
+        <thead>
+          <tr><th>Category</th><th class="num">Year 1</th><th class="num">Steady State</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="cat-pill rev">Rev</span> Revenue Cycle (Net Revenue)</td>
+            <td class="num green">$10–18M</td>
+            <td class="num green">$25–39M</td>
+          </tr>
+          <tr>
+            <td><span class="cat-pill rev">Rev</span> Cash Acceleration (Working Capital)</td>
+            <td class="num green">$7.2M</td>
+            <td class="num" style="color:var(--text-light)">One-time</td>
+          </tr>
+          <tr>
+            <td><span class="cat-pill labor">Labor</span> Workforce Optimization</td>
+            <td class="num green">$6–10M</td>
+            <td class="num green">$12–22M</td>
+          </tr>
+          <tr>
+            <td><span class="cat-pill supply">Supply</span> Non-Labor Cost Reduction</td>
+            <td class="num green">$5–8M</td>
+            <td class="num green">$8–16M</td>
+          </tr>
+          <tr>
+            <td><span class="cat-pill capital">Capital</span> Capital & Liquidity</td>
+            <td class="num green">$10–15M</td>
+            <td class="num green">$5–10M</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr><td>TOTAL (Net Revenue)</td><td class="num" style="color:var(--green)">$21–36M</td><td class="num" style="color:var(--green)">$45–77M*</td></tr>
+          <tr><td>TOTAL (Cash Acceleration)</td><td class="num" style="color:var(--navy)">$7.2M</td><td class="num" style="color:var(--text-light)">One-time</td></tr>
+        </tfoot>
+      </table>
+      <div style="font-size:.67rem;color:var(--text-light);margin-top:.3rem">*Recurring annual savings at steady state. Cash Acceleration ($7.2M) is one-time working capital release from AR reduction, shown separately. Capital category includes CapEx deferral (one-time) and Foundation distributions (ongoing).</div>
+
+      <div class="total-bar" style="margin-top:1rem">
+        <div>
+          <div class="total-label">Projected Margin at Steady State</div>
+          <div class="total-sub">Current 6.2% + improvement range</div>
+        </div>
+        <div style="text-align:right">
+          <div class="total-value">10.2–13.3%</div>
+          <div class="total-sub">vs. Moody's Aa median: 8–12%</div>
+        </div>
+      </div>
+
+      <div class="three-col" style="margin-top:1rem">
+        <div style="background:var(--light-bg);border-radius:8px;padding:.7rem .85rem;border:1px solid var(--border);text-align:center">
+          <div style="font-size:.62rem;text-transform:uppercase;color:var(--text-light);font-weight:600">Days Cash Target</div>
+          <div style="font-family:'Inter',sans-serif;font-weight:800;font-size:1.2rem;color:var(--navy)">26 → 75+</div>
+          <div style="font-size:.65rem;color:var(--text-light)">24-month path</div>
+        </div>
+        <div style="background:var(--light-bg);border-radius:8px;padding:.7rem .85rem;border:1px solid var(--border);text-align:center">
+          <div style="font-size:.62rem;text-transform:uppercase;color:var(--text-light);font-weight:600">OpCF Target</div>
+          <div style="font-family:'Inter',sans-serif;font-weight:800;font-size:1.2rem;color:var(--navy)">$30.4M → $50M+</div>
+          <div style="font-size:.65rem;color:var(--text-light)">24-month path</div>
+        </div>
+        <div style="background:var(--light-bg);border-radius:8px;padding:.7rem .85rem;border:1px solid var(--border);text-align:center">
+          <div style="font-size:.62rem;text-transform:uppercase;color:var(--text-light);font-weight:600">Risk Mitigation</div>
+          <div style="font-family:'Inter',sans-serif;font-weight:800;font-size:1.2rem;color:var(--red)">Covenant</div>
+          <div style="font-size:.65rem;color:var(--text-light)">Prevent trigger at 26d cash</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Chesapeake Hospital Authority | Margin Improvement Opportunity Assessment</span>
+    <span>April 2026 | Slide 5 of 6</span>
+  </div>
+</div>
+
+<!-- ===== SLIDE 6: PAYER MIX TRAJECTORY & PROJECTION ===== -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <h1>Payer Mix Trajectory & Forward Projection</h1>
+      <div class="slide-subtitle"><span class="cat-pill rev">Revenue</span> <span class="cat-pill strat">Strategy</span> 5-Year historical trend with FY2026–FY2027 projection scenarios</div>
+    </div>
+    <div class="brand">COKER<span>.</span></div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi">
+      <div class="label">Anthem (Commercial)</div>
+      <div class="value red">26% → 21%</div>
+      <div class="sub">−5pp over 5 years (−1pp/yr)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Self-Pay Exposure</div>
+      <div class="value accent">2% → 4%</div>
+      <div class="sub">Doubled; highest bad-debt risk</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Medicare (Gov't)</div>
+      <div class="value navy">31% → 33%</div>
+      <div class="sub">Stable; aging population driver</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Optima (Managed)</div>
+      <div class="value purple">7% → 9%</div>
+      <div class="sub">Peaked 11% (FY2023)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Revenue at Risk</div>
+      <div class="value red">$15–25M</div>
+      <div class="sub">From continued mix erosion</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="chart-box">
+        <h3>Payer Mix % of Net Patient Revenue (FY2020–FY2025 Actual + FY2026–FY2027 Projected)</h3>
+        <canvas id="chartPayerTrend" style="max-height:280px"></canvas>
+      </div>
+      <div class="callout info" style="margin-top:.75rem">
+        <strong>Projection methodology:</strong> Linear extrapolation of 5-year CAGR per payer, bounded by market constraints. Anthem floor assumes successful contract renegotiation stabilizes at 19–20%. Without intervention, trend reaches 17–18% by FY2027.
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:.85rem;margin-bottom:.5rem">Projected Payer Mix Scenarios (FY2026–FY2027)</h3>
+      <table class="data">
+        <thead>
+          <tr><th>Payer</th><th class="num">FY2025</th><th class="num">FY2026E<br>(Status Quo)</th><th class="num">FY2027E<br>(Status Quo)</th><th class="num">FY2027E<br>(Intervention)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold">Medicare</td>
+            <td class="num">33%</td>
+            <td class="num">34%</td>
+            <td class="num">35%</td>
+            <td class="num">34%</td>
+          </tr>
+          <tr>
+            <td class="bold">Anthem</td>
+            <td class="num red">21%</td>
+            <td class="num red">19%</td>
+            <td class="num red">17%</td>
+            <td class="num green">22%</td>
+          </tr>
+          <tr>
+            <td class="bold">Medicaid</td>
+            <td class="num">10%</td>
+            <td class="num">9%</td>
+            <td class="num">9%</td>
+            <td class="num">9%</td>
+          </tr>
+          <tr>
+            <td class="bold">Optima</td>
+            <td class="num">9%</td>
+            <td class="num">9%</td>
+            <td class="num">9%</td>
+            <td class="num">8%</td>
+          </tr>
+          <tr>
+            <td class="bold">Self-Pay</td>
+            <td class="num red">4%</td>
+            <td class="num red">5%</td>
+            <td class="num red">6%</td>
+            <td class="num green">3%</td>
+          </tr>
+          <tr>
+            <td class="bold">Other</td>
+            <td class="num">23%</td>
+            <td class="num">24%</td>
+            <td class="num">24%</td>
+            <td class="num">24%</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr><td>Implied Revenue Yield Δ</td><td class="num">Baseline</td><td class="num red">−$8–12M</td><td class="num red">−$15–22M</td><td class="num green">+$5–10M</td></tr>
+        </tfoot>
+      </table>
+
+      <div class="chart-box" style="margin-top:1rem">
+        <h3>Revenue Impact — Status Quo vs. Intervention ($M)</h3>
+        <canvas id="chartPayerRevImpact" style="max-height:180px"></canvas>
+      </div>
+
+      <div class="callout critical" style="margin-top:.75rem">
+        <strong>Anthem is 50% of commercial reimbursement.</strong> A 5–10% rate increase on Anthem's ~$107M revenue share yields $5.3–10.7M annually. Combined with self-pay conversion programs, intervention scenario recovers $10–18M vs. status quo by FY2027.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Chesapeake Hospital Authority | Margin Improvement Opportunity Assessment</span>
+    <span>April 2026 | Slide 6 of 6</span>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+const navy='#1B2A4A',steel='#4A7FB5',accent='#E8833A',red='#C0392B',green='#2E8B57',purple='#6B5B95';
+const labels6=['FY2020','FY2021','FY2022','FY2023','FY2024','FY2025'];
+
+// Slide 1: Margin trend
+new Chart(document.getElementById('chartMarginTrend'),{
+  type:'line',
+  data:{
+    labels:labels6,
+    datasets:[
+      {label:'Operating Margin %',data:[6.01,10.69,7.94,9.20,7.26,6.20],borderColor:navy,backgroundColor:navy+'22',borderWidth:3,pointRadius:5,pointBackgroundColor:navy,fill:true,tension:.3},
+      {label:'EBIDA Margin %',data:[12.20,16.38,14.19,14.87,13.08,11.81],borderColor:steel,backgroundColor:steel+'11',borderWidth:2,pointRadius:4,pointBackgroundColor:steel,fill:false,tension:.3,borderDash:[5,3]}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Inter'},usePointStyle:true}}},
+    scales:{y:{min:4,max:18,ticks:{callback:v=>v+'%'},grid:{color:'#eee'}}}
+  }
+});
+
+// Slide 1: Opportunity breakdown doughnut
+new Chart(document.getElementById('chartOppBreakdown'),{
+  type:'doughnut',
+  data:{
+    labels:['Revenue Cycle & Enhancement','Labor & Workforce','Supply Chain & Non-Labor','Capital & Liquidity'],
+    datasets:[{data:[29,17,12,8],backgroundColor:[steel,red+'cc',accent,purple],borderWidth:2,borderColor:'#fff'}]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Inter'},usePointStyle:true,pointStyle:'rectRounded',padding:8}}}
+  }
+});
+
+// Slide 2: Labor % of Revenue with benchmark
+const rev6=[364.2,418.1,425.3,470.1,500.6,527.0];
+new Chart(document.getElementById('chartLabor'),{
+  type:'line',
+  data:{
+    labels:labels6,
+    datasets:[
+      {label:'Total Labor % of Revenue',data:[48.2,44.4,45.1,45.3,47.0,47.9],borderColor:navy,backgroundColor:navy+'18',borderWidth:3,pointRadius:5,pointBackgroundColor:navy,fill:true,tension:.3},
+      {label:'Salaries % of Revenue',data:[38.5,36.2,37.9,37.3,39.0,39.8],borderColor:steel,borderWidth:2,pointRadius:4,pointBackgroundColor:steel,fill:false,tension:.3},
+      {label:'Benefits % of Revenue',data:[9.7,8.1,7.2,7.9,8.0,8.1],borderColor:purple,borderWidth:2,pointRadius:3,pointBackgroundColor:purple,fill:false,tension:.3,borderDash:[4,2]},
+      {label:'Contract Labor % of Revenue',data:[3.3,3.6,6.5,6.4,7.0,7.4],borderColor:accent,borderWidth:2,pointRadius:4,pointBackgroundColor:accent,fill:false,tension:.3},
+      {label:'Moody\'s Aa Benchmark — Total Labor (44%)',data:[44,44,44,44,44,44],borderColor:green,borderWidth:2,borderDash:[6,3],pointRadius:0,fill:false},
+      {label:'Benchmark — Contract Labor (3%)',data:[3,3,3,3,3,3],borderColor:green+'88',borderWidth:1.5,borderDash:[3,3],pointRadius:0,fill:false}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{size:9,family:'Inter'},usePointStyle:true,padding:6}}},
+    scales:{y:{min:0,max:52,ticks:{callback:v=>v+'%'},grid:{color:'#eee'}}}
+  }
+});
+
+// Slide 3: All expense categories as % of revenue with benchmarks
+new Chart(document.getElementById('chartExpPctRev'),{
+  type:'line',
+  data:{
+    labels:labels6,
+    datasets:[
+      {label:'Supplies',data:[19.7,19.7,22.0,20.8,21.5,21.3],borderColor:accent,backgroundColor:accent+'15',borderWidth:2.5,pointRadius:5,pointBackgroundColor:accent,fill:true,tension:.3},
+      {label:'Purchased Services',data:[6.4,6.7,5.8,6.1,6.3,6.7],borderColor:purple,borderWidth:2,pointRadius:4,pointBackgroundColor:purple,fill:false,tension:.3},
+      {label:'Other OpEx',data:[12.5,12.0,11.5,11.9,11.2,11.5],borderColor:steel,borderWidth:2,pointRadius:4,pointBackgroundColor:steel,fill:false,tension:.3,borderDash:[4,2]},
+      {label:'Depreciation',data:[6.2,5.7,6.3,5.7,5.8,5.6],borderColor:navy+'88',borderWidth:1.5,pointRadius:3,pointBackgroundColor:navy,fill:false,tension:.3,borderDash:[2,2]},
+      {label:'Benchmark — Supplies (18%)',data:[18,18,18,18,18,18],borderColor:green,borderWidth:2,borderDash:[6,3],pointRadius:0,fill:false},
+      {label:'Benchmark — Purchased Svcs (5%)',data:[5,5,5,5,5,5],borderColor:green+'88',borderWidth:1.5,borderDash:[3,3],pointRadius:0,fill:false},
+      {label:'Benchmark — Other OpEx (10%)',data:[10,10,10,10,10,10],borderColor:green+'55',borderWidth:1.5,borderDash:[3,3],pointRadius:0,fill:false}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{size:9,family:'Inter'},usePointStyle:true,padding:6}}},
+    scales:{y:{min:0,max:25,ticks:{callback:v=>v+'%'},grid:{color:'#eee'}}}
+  }
+});
+
+// Slide 4: AR balance chart
+new Chart(document.getElementById('chartAR'),{
+  type:'bar',
+  data:{
+    labels:labels6,
+    datasets:[
+      {label:'Patient AR ($M)',data:[39.4,47.1,47.3,46.3,49.8,58.8],backgroundColor:steel,borderRadius:4,yAxisID:'y'},
+      {label:'Days in AR',data:[40.9,42.7,42.1,37.2,37.6,42.2],type:'line',borderColor:red,borderWidth:3,pointRadius:5,pointBackgroundColor:red,fill:false,tension:.3,yAxisID:'y1'}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Inter'},usePointStyle:true}}},
+    scales:{
+      y:{position:'left',title:{display:true,text:'AR Balance ($M)',font:{size:10}},ticks:{callback:v=>'$'+v+'M'},grid:{color:'#eee'}},
+      y1:{position:'right',title:{display:true,text:'Days',font:{size:10}},min:30,max:50,grid:{drawOnChartArea:false}}
+    }
+  }
+});
+
+// Slide 4: Payer mix horizontal bar
+new Chart(document.getElementById('chartPayer'),{
+  type:'bar',
+  data:{
+    labels:['Medicare','Anthem','Medicaid','Optima','Self-Pay','Other'],
+    datasets:[
+      {label:'FY2020',data:[31,26,12,7,2,20],backgroundColor:navy+'88',borderRadius:3},
+      {label:'FY2025',data:[33,21,10,9,4,23],backgroundColor:accent,borderRadius:3}
+    ]
+  },
+  options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Inter'},usePointStyle:true}}},
+    scales:{x:{ticks:{callback:v=>v+'%'},max:35,grid:{color:'#eee'}}}
+  }
+});
+
+// Slide 5: Bridge chart (simplified grouped bar as waterfall proxy)
+new Chart(document.getElementById('chartBridge'),{
+  type:'bar',
+  data:{
+    labels:['Current\nMargin','Rev Cycle\n(Net Rev)','+Labor\nOptimization','+Supply\nChain','+Capital &\nLiquidity','Target\nMargin'],
+    datasets:[{
+      label:'Margin %',
+      data:[6.2,2.7,2.2,1.5,0.7,13.3],
+      backgroundColor:[navy,steel,red+'cc',accent,purple,green],
+      borderRadius:4
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataIndex===0||ctx.dataIndex===5?ctx.raw+'%':'+'+ctx.raw+' pp'}}},
+    scales:{y:{ticks:{callback:v=>v+'%'},grid:{color:'#eee'},max:16}}
+  }
+});
+
+// Slide 6: Payer mix trend with projections
+const labelsPayer=['FY2020','FY2021','FY2022','FY2023','FY2024','FY2025','FY2026E','FY2027E'];
+new Chart(document.getElementById('chartPayerTrend'),{
+  type:'line',
+  data:{
+    labels:labelsPayer,
+    datasets:[
+      {label:'Medicare',data:[31,33,32,30,32,33,34,35],borderColor:navy,backgroundColor:navy+'18',borderWidth:2.5,pointRadius:4,pointBackgroundColor:navy,fill:false,tension:.3},
+      {label:'Anthem',data:[26,25,25,18,20,21,19,17],borderColor:red,backgroundColor:red+'18',borderWidth:2.5,pointRadius:4,pointBackgroundColor:red,fill:false,tension:.3},
+      {label:'Anthem (Intervention)',data:[null,null,null,null,null,21,21,22],borderColor:green,borderWidth:2,pointRadius:4,pointBackgroundColor:green,pointStyle:'triangle',fill:false,tension:.3,borderDash:[6,3]},
+      {label:'Optima',data:[7,7,6,11,10,9,9,9],borderColor:purple,borderWidth:2,pointRadius:3,pointBackgroundColor:purple,fill:false,tension:.3},
+      {label:'Self-Pay',data:[2,1,2,5,4,4,5,6],borderColor:accent,borderWidth:2,pointRadius:3,pointBackgroundColor:accent,fill:false,tension:.3},
+      {label:'Self-Pay (Intervention)',data:[null,null,null,null,null,4,3.5,3],borderColor:green+'aa',borderWidth:1.5,pointRadius:3,pointBackgroundColor:green,pointStyle:'triangle',fill:false,tension:.3,borderDash:[4,2]}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'bottom',labels:{font:{size:9,family:'Inter'},usePointStyle:true,padding:6}},
+      annotation:{annotations:{projLine:{type:'line',xMin:5.5,xMax:5.5,borderColor:'#999',borderWidth:1,borderDash:[4,3],label:{display:true,content:'Projected →',position:'start',font:{size:9},color:'#666'}}}}
+    },
+    scales:{
+      y:{min:0,max:40,ticks:{callback:v=>v+'%'},grid:{color:'#eee'}},
+      x:{grid:{color:'#f5f5f5'}}
+    }
+  }
+});
+
+// Slide 6: Revenue impact comparison
+new Chart(document.getElementById('chartPayerRevImpact'),{
+  type:'bar',
+  data:{
+    labels:['FY2026','FY2027'],
+    datasets:[
+      {label:'Status Quo (yield loss)',data:[-10,-18],backgroundColor:red+'cc',borderRadius:4},
+      {label:'Intervention (yield gain)',data:[2,8],backgroundColor:green,borderRadius:4}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Inter'},usePointStyle:true,pointStyle:'rectRounded'}}},
+    scales:{y:{ticks:{callback:v=>(v>=0?'+':'')+v+'M'},grid:{color:'#eee'},min:-22,max:12}}
+  }
+});
+</script>
+</body>
+</html>

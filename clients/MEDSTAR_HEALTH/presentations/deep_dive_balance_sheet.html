@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedStar Health — Balance Sheet Deep Dive</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--ac-blue:#004BFF;--ac-deep-blue:#0C36B4;--ac-blue-mid:#4A78FF;--ac-blue-pale:#7BA3FF;--ac-blue-ghost:#B3C8FF;--ac-teal:#4CC6C6;--ac-amber:#F4B73F;--ac-green:#169873;--ac-red:#B83232;--ac-dark:#22272D;--ac-gray-60:#6B6F73;--ac-gray-40:#E8E9EA;--ac-light-gray:#F3F4F5;--ac-white:#FFFFFF;--font-family:Arial,Helvetica,sans-serif;--gradient-tl:linear-gradient(135deg,#004BFF 0%,#0C36B4 100%)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-family);background:#E8E9EA;color:var(--ac-dark)}
+.slide-frame{position:relative;width:960px;height:540px;margin:24px auto;background:var(--ac-white);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden;page-break-after:always}
+.slide-cover{background:var(--gradient-tl);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:60px 80px}
+.slide-cover .logo{height:36px;margin-bottom:40px}
+.slide-cover h1{font-size:2.25rem;font-weight:700;line-height:1.2;margin-bottom:12px}
+.slide-cover .subtitle{font-size:1.125rem;opacity:.85}
+.slide-cover .meta{position:absolute;bottom:40px;left:80px;font-size:.75rem;opacity:.6}
+.slide-divider{background:var(--ac-deep-blue);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:60px}
+.slide-divider h2{font-size:1.875rem;font-weight:700}
+.slide-content{display:flex;flex-direction:column}
+.slide-header{border-top:4px solid var(--ac-blue);padding:16px 40px 8px}
+.slide-header h2{font-size:1.5rem;font-weight:700;color:var(--ac-blue);line-height:1.3}
+.slide-body{flex:1;padding:8px 40px 0;overflow:hidden}
+.slide-footer{display:flex;justify-content:space-between;align-items:center;padding:8px 40px;font-size:.75rem;color:var(--ac-gray-60)}
+.slide-footer img{height:20px}
+.kpi-strip{display:flex;gap:12px;margin-bottom:14px}
+.kpi-block{flex:1;background:var(--ac-light-gray);border-radius:8px;padding:10px 14px;text-align:center}
+.kpi-block .kpi-value{font-size:1.875rem;font-weight:700;color:var(--ac-blue)}
+.kpi-block .kpi-label{font-size:.75rem;color:var(--ac-gray-60);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.callout-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.callout{background:var(--ac-light-gray);border-radius:8px;padding:14px 18px;border-left:4px solid var(--ac-blue)}
+.callout.green{border-left-color:var(--ac-green)}.callout.red{border-left-color:var(--ac-red)}.callout.amber{border-left-color:var(--ac-amber)}
+.callout h4{font-size:.875rem;font-weight:700;margin-bottom:4px}
+.callout p{font-size:.75rem;color:var(--ac-gray-60);line-height:1.4}
+.insight-list{list-style:none;padding:0}
+.insight-list li{padding:8px 0 8px 24px;position:relative;font-size:.875rem;line-height:1.5;border-bottom:1px solid var(--ac-gray-40)}
+.insight-list li:last-child{border-bottom:none}
+.insight-list li::before{content:'';position:absolute;left:0;top:14px;width:10px;height:10px;border-radius:50%;background:var(--ac-blue)}
+.insight-list li.green::before{background:var(--ac-green)}.insight-list li.red::before{background:var(--ac-red)}.insight-list li.amber::before{background:var(--ac-amber)}
+.source-line{font-size:.65rem;color:var(--ac-gray-60);margin-top:6px}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:700}
+.tag-green{background:#E6F5EE;color:var(--ac-green)}.tag-red{background:#FDEAEA;color:var(--ac-red)}.tag-amber{background:#FFF5E0;color:#B8860B}
+.d3-chart{width:100%;overflow:hidden}
+.d3-chart svg{display:block}
+.d3-chart text{font-family:var(--font-family)}
+.phase-row{display:flex;gap:12px;margin-bottom:10px}
+.phase-block{flex:1;border-radius:8px;padding:14px 16px;color:#fff}
+.phase-block h4{font-size:.875rem;font-weight:700;margin-bottom:6px}
+.phase-block ul{font-size:.75rem;padding-left:16px;line-height:1.6}
+.phase-1{background:var(--ac-blue)}.phase-2{background:var(--ac-deep-blue)}.phase-3{background:var(--ac-blue-mid)}
+.data-table{width:100%;border-collapse:collapse;font-size:.75rem}
+.data-table th{background:var(--ac-blue);color:#fff;padding:6px 10px;text-align:left;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.data-table td{padding:5px 10px;border-bottom:1px solid var(--ac-gray-40)}
+.data-table tr:nth-child(even) td{background:var(--ac-light-gray)}
+.data-table .num{text-align:right;font-variant-numeric:tabular-nums}
+@media print{body{background:#fff}.slide-frame{box-shadow:none;margin:0}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ SLIDE 1: COVER ═══════════ -->
+<div class="slide-frame slide-cover">
+  <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-white.png" alt="Acuvance Coker" class="logo">
+  <h1>MedStar Health, Inc.</h1>
+  <div class="subtitle">Balance Sheet Health &amp; Trajectory — Deep Dive Analysis</div>
+  <div class="meta">CONFIDENTIAL &nbsp;|&nbsp; May 2026 &nbsp;|&nbsp; Domain Deep Dive: Balance Sheet &amp; Credit</div>
+</div>
+
+<!-- ═══════════ SLIDE 2: BS AT A GLANCE ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Balance Sheet Snapshot: Structural Strength Masking Operational Fragility</h2></div>
+  <div class="slide-body">
+    <div class="kpi-strip">
+      <div class="kpi-block"><div class="kpi-value">$4.3B</div><div class="kpi-label">Net Assets (Unrest.)</div></div>
+      <div class="kpi-block"><div class="kpi-value" style="color:var(--ac-green)">28.5%</div><div class="kpi-label">Debt / Cap</div></div>
+      <div class="kpi-block"><div class="kpi-value" style="color:var(--ac-red)">122d</div><div class="kpi-label">Days Cash</div></div>
+      <div class="kpi-block"><div class="kpi-value" style="color:var(--ac-amber)">51d</div><div class="kpi-label">Days A/R</div></div>
+      <div class="kpi-block"><div class="kpi-value" style="color:var(--ac-green)">$14M</div><div class="kpi-label">Pension Liab.</div></div>
+    </div>
+    <div class="callout-grid">
+      <div class="callout green">
+        <h4>The Good: Capital Structure Is the Strongest in a Decade</h4>
+        <p>Unrestricted net assets grew 140% since FY2018 ($1.8B→$4.3B). Debt-to-cap at 28.5% is well below the 33% A-rated ceiling. Pension virtually eliminated ($629M→$14M).</p>
+      </div>
+      <div class="callout red">
+        <h4>The Concern: Liquidity and Cash Generation Lag</h4>
+        <p>Days cash stuck at ~122 vs. 225-day A-rated median. Operating CF margin at 2.0% vs. 7% benchmark. CapEx/depreciation at 8% = severe deferred maintenance. The balance sheet is improving despite operations, not because of them.</p>
+      </div>
+      <div class="callout amber">
+        <h4>The Risk: Growth Driven by Investment Returns, Not Operations</h4>
+        <p>Cumulative operating income FY2018–FY2025: $1.3B. But net assets grew $2.5B. The difference = investment market gains. In FY2022, investment losses of -$271M erased all operating surplus.</p>
+      </div>
+      <div class="callout">
+        <h4>The Opportunity: Debt Capacity Headroom</h4>
+        <p>At 28.5% debt-to-cap vs. 33% ceiling, MedStar has $300–400M in unused strategic debt capacity to fund transformation without credit deterioration.</p>
+      </div>
+    </div>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025 &nbsp;|&nbsp; Benchmarks: Moody's A-rated health system medians</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>2 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 3: STACKED AREA — ASSET COMPOSITION ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Asset Composition Has Shifted Toward Investments and Away from Liquidity</h2></div>
+  <div class="slide-body">
+    <div class="d3-chart" id="chart-asset-stack" style="height:340px"></div>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025. Cash spike in FY2020 reflects CARES Act / Medicare accelerated payments.</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>3 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 4: NET ASSET WATERFALL ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Net Asset Growth: $2.5B Built Primarily on Investment Returns</h2></div>
+  <div class="slide-body">
+    <div class="d3-chart" id="chart-na-waterfall" style="height:350px"></div>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025. Investment returns include realized/unrealized gains on long-term portfolio.</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>4 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 5: RADIAL GAUGE DASHBOARD ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Rating Agency Dashboard: Two Green, Two Amber, Three Red</h2></div>
+  <div class="slide-body">
+    <div class="d3-chart" id="chart-gauges" style="height:360px"></div>
+    <div class="source-line">Source: Audited Financial Statements, FY2025 &nbsp;|&nbsp; Benchmarks: Moody's A-rated health system medians &nbsp;|&nbsp; Green ≥ benchmark, Amber = within 20%, Red = below</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>5 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 6: DEBT-TO-CAP + NET ASSETS TRAJECTORY ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Leverage Is Declining Rapidly — Driven by Net Asset Growth, Not Debt Paydown</h2></div>
+  <div class="slide-body">
+    <div class="d3-chart" id="chart-leverage" style="height:340px"></div>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025. Debt/Cap = LT Debt ÷ (LT Debt + Unrestricted Net Assets).</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>6 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 7: PENSION ELIMINATION ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Pension Liability Virtually Eliminated: A $615M Turnaround Story</h2></div>
+  <div class="slide-body">
+    <div class="d3-chart" id="chart-pension" style="height:300px"></div>
+    <div class="callout green" style="margin-top:10px">
+      <h4>From $629M liability (FY2020) to $14M (FY2025) — now overfunded with $58.7M in plan assets</h4>
+      <p>Plan appears frozen with improving funded status. Frees ~$30–50M in annual required contributions for strategic redeployment. One of MedStar's strongest balance sheet achievements.</p>
+    </div>
+    <div class="source-line">Source: Audited Financial Statements + Note 6 (Other Assets), FY2025</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>7 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 8: LIQUIDITY DEEP DIVE ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Liquidity: $2.8B in Investments, But Only 122 Days of Operating Cash</h2></div>
+  <div class="slide-body">
+    <div class="d3-chart" id="chart-liquidity" style="height:340px"></div>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025. Days Cash = (Cash + LT Investments) ÷ (Daily Cash OpEx). FY2020 spike = CARES Act.</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>8 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 9: DAYS AR TRAJECTORY ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Days in A/R Rising Steadily: 42 → 51 Days, $204M in Consumed Working Capital</h2></div>
+  <div class="slide-body">
+    <div class="d3-chart" id="chart-days-ar" style="height:280px"></div>
+    <div class="callout-grid" style="margin-top:10px">
+      <div class="callout red">
+        <h4>$204M in Working Capital Consumed</h4>
+        <p>8.3-day deterioration × $24.6M/day = $204M more tied up in receivables. AR grew 91% ($652M→$1,246M) while revenue grew only 60%.</p>
+      </div>
+      <div class="callout amber">
+        <h4>Commercial Payers Are the Friction Point</h4>
+        <p>"Other commercial" = 26% of revenue but 37% of AR ($388M). Denial management and contract enforcement are the highest-yield targets.</p>
+      </div>
+    </div>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025. Each day of AR = ~$24.6M at FY2025 revenue.</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>9 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 10: CAPEX VS DEPRECIATION ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Capital Reinvestment Crisis: CapEx Has Never Exceeded 31% of Depreciation</h2></div>
+  <div class="slide-body">
+    <div class="d3-chart" id="chart-capex" style="height:280px"></div>
+    <div class="callout red" style="margin-top:10px">
+      <h4>Estimated $1.4B in Accumulated Deferred Maintenance (FY2018–FY2025)</h4>
+      <p>With $2.3B in net PP&E and $272M in annual depreciation, the physical plant is aging without reinvestment. CapEx actually <em>declined</em> from $70M (FY2023) to $20M (FY2025) while revenue grew 16%. This is a slow-building crisis that eventually becomes emergency capital need.</p>
+    </div>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025. Benchmark: Moody's A-rated median CapEx/Depr = 100–120%.</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>10 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 11: SELF-INSURANCE TREND ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Self-Insurance Reserves Are Growing: A Hidden Cash Drain</h2></div>
+  <div class="slide-body">
+    <div class="d3-chart" id="chart-self-ins" style="height:260px"></div>
+    <div class="callout-grid" style="margin-top:10px">
+      <div class="callout amber">
+        <h4>$394M in Reserves, Up 39% Since FY2018</h4>
+        <p>Professional &amp; general liability accruals: $448M (FY2025). Per-claim retention rose from $20M to $25M. Rising risk exposure in the malpractice-heavy MD/DC corridor.</p>
+      </div>
+      <div class="callout">
+        <h4>Why It Matters</h4>
+        <p>Self-insurance is a long-tail liability. Today's reserves fund yesterday's claims. If actuarial estimates prove inadequate, future cash calls accelerate — consuming operating cash flow that's already thin.</p>
+      </div>
+    </div>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025 + Note 11 (Self-Insurance Programs)</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>11 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 12: INVESTMENT RETURNS VS OP INCOME ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Investment Returns Are Masking Weak Operating Performance</h2></div>
+  <div class="slide-body">
+    <div class="d3-chart" id="chart-inv-vs-ops" style="height:340px"></div>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025. Investment returns = realized + unrealized gains on LT portfolio. Operating income = total revenue − total operating expense.</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>12 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 13: OPPORTUNITY SIZING ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Balance Sheet Opportunities: Protect Strengths, Close the Gaps</h2></div>
+  <div class="slide-body">
+    <table class="data-table">
+      <thead><tr><th>Domain</th><th>Status</th><th>Action</th><th class="num">Impact</th></tr></thead>
+      <tbody>
+        <tr><td>Debt / Capitalization</td><td><span class="tag tag-green">STRONG</span></td><td>Protect. Use 450bp headroom as strategic debt capacity for targeted capital deployment ($300–400M available).</td><td class="num">Enabling</td></tr>
+        <tr><td>Pension Elimination</td><td><span class="tag tag-green">STRONG</span></td><td>Redirect $30–50M in freed annual contributions to capital investment or liquidity building.</td><td class="num">$30–50M/yr</td></tr>
+        <tr><td>Days in A/R</td><td><span class="tag tag-amber">WARNING</span></td><td>Reduce from 51d to 45d via commercial denial management. One-time $148M cash release + $25–50M/yr.</td><td class="num">$148M + ongoing</td></tr>
+        <tr><td>Days Cash on Hand</td><td><span class="tag tag-red">BELOW</span></td><td>Composite: improve CF via margin gains, release AR working capital, rebalance investment liquidity.</td><td class="num">+78 days target</td></tr>
+        <tr><td>CapEx / Depreciation</td><td><span class="tag tag-red">CRITICAL</span></td><td>Facilities master plan to address $1.4B deferred backlog. Phase over 5–7 years, fund via debt capacity + CF improvement.</td><td class="num">$1.0–1.4B plan</td></tr>
+        <tr><td>Self-Insurance</td><td><span class="tag tag-amber">RISING</span></td><td>Actuarial review of reserves adequacy. Explore risk transfer for tail exposure. Benchmark retention levels.</td><td class="num">Risk mitigation</td></tr>
+      </tbody>
+    </table>
+    <div class="source-line">Source: Analysis based on Audited Financial Statements, FY2018–FY2025</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>13 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 14: ROADMAP ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Recommended Engagement: Protect, Release, Rebuild</h2></div>
+  <div class="slide-body">
+    <div class="phase-row">
+      <div class="phase-block phase-1">
+        <h4>Protect (0–6 mo)</h4>
+        <ul>
+          <li>Revenue cycle diagnostic — commercial AR deep dive</li>
+          <li>Working capital optimization — AR to 45 days</li>
+          <li>Self-insurance actuarial adequacy review</li>
+          <li>Investment portfolio liquidity assessment</li>
+        </ul>
+      </div>
+      <div class="phase-block phase-2">
+        <h4>Release (6–18 mo)</h4>
+        <ul>
+          <li>Freed pension contributions → capital reserve</li>
+          <li>AR cash release → liquidity cushion</li>
+          <li>Operating margin improvement → CF generation</li>
+          <li>Debt capacity sizing for strategic deployment</li>
+        </ul>
+      </div>
+      <div class="phase-block phase-3">
+        <h4>Rebuild (18–36 mo)</h4>
+        <ul>
+          <li>Facilities master plan &amp; capital allocation</li>
+          <li>Phased deferred maintenance program</li>
+          <li>Rating agency engagement strategy</li>
+          <li>Long-term investment policy rebalancing</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout green" style="margin-top:10px">
+      <h4>MedStar has the balance sheet to fund its own transformation</h4>
+      <p>$300–400M in debt capacity headroom + $30–50M/yr in freed pension contributions + $148M in AR cash release = the capital exists. What's needed is a disciplined framework to deploy it.</p>
+    </div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>14 / 15</span></div>
+</div>
+
+<!-- ═══════════ SLIDE 15: APPENDIX — FULL BS DATA ═══════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Appendix: Key Balance Sheet Ratios (FY2018–FY2025)</h2></div>
+  <div class="slide-body">
+    <table class="data-table" style="font-size:.65rem">
+      <thead><tr><th>Metric</th><th class="num">FY18</th><th class="num">FY19</th><th class="num">FY20</th><th class="num">FY21</th><th class="num">FY22</th><th class="num">FY23</th><th class="num">FY24</th><th class="num">FY25</th><th class="num">A-Rated</th></tr></thead>
+      <tbody>
+        <tr><td>Days Cash</td><td class="num">123</td><td class="num">121</td><td class="num">220</td><td class="num">175</td><td class="num">119</td><td class="num">120</td><td class="num">120</td><td class="num">122</td><td class="num">225</td></tr>
+        <tr><td>Days AR</td><td class="num">42</td><td class="num">44</td><td class="num">43</td><td class="num">49</td><td class="num">48</td><td class="num">44</td><td class="num">46</td><td class="num">51</td><td class="num">48</td></tr>
+        <tr><td>Debt/Cap %</td><td class="num">45.9</td><td class="num">46.7</td><td class="num">53.6</td><td class="num">38.0</td><td class="num">39.8</td><td class="num">36.3</td><td class="num">30.2</td><td class="num">28.5</td><td class="num">33</td></tr>
+        <tr><td>Debt/EBIDA</td><td class="num">4.6x</td><td class="num">4.6x</td><td class="num">6.0x</td><td class="num">3.7x</td><td class="num">6.1x</td><td class="num">5.0x</td><td class="num">4.1x</td><td class="num">3.6x</td><td class="num">3.0x</td></tr>
+        <tr><td>CapEx/Depr %</td><td class="num">10</td><td class="num">15</td><td class="num">16</td><td class="num">19</td><td class="num">23</td><td class="num">31</td><td class="num">9</td><td class="num">8</td><td class="num">110</td></tr>
+        <tr><td>CF Margin %</td><td class="num">4.0</td><td class="num">4.8</td><td class="num">18.4</td><td class="num">5.7</td><td class="num">-6.0</td><td class="num">3.6</td><td class="num">3.7</td><td class="num">2.0</td><td class="num">7.0</td></tr>
+        <tr><td>Pension ($M)</td><td class="num">290</td><td class="num">437</td><td class="num">629</td><td class="num">305</td><td class="num">188</td><td class="num">94</td><td class="num">17</td><td class="num">14</td><td class="num">—</td></tr>
+        <tr><td>Self-Ins ($M)</td><td class="num">283</td><td class="num">273</td><td class="num">282</td><td class="num">328</td><td class="num">359</td><td class="num">336</td><td class="num">363</td><td class="num">394</td><td class="num">—</td></tr>
+        <tr><td>Net Assets ($M)</td><td class="num">1,788</td><td class="num">1,796</td><td class="num">1,700</td><td class="num">2,748</td><td class="num">2,692</td><td class="num">3,127</td><td class="num">3,737</td><td class="num">4,289</td><td class="num">—</td></tr>
+      </tbody>
+    </table>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025 &nbsp;|&nbsp; Benchmarks: Moody's A-rated health system medians</div>
+  </div>
+  <div class="slide-footer"><img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="AC"><span>MedStar Health — Balance Sheet Deep Dive</span><span>15 / 15</span></div>
+</div>
+
+<script>
+const C = {blue:'#004BFF',deep:'#0C36B4',mid:'#4A78FF',pale:'#7BA3FF',ghost:'#B3C8FF',teal:'#4CC6C6',amber:'#F4B73F',green:'#169873',red:'#B83232',dark:'#22272D',gray:'#E8E9EA',lgray:'#F3F4F5'};
+const yrs=['FY2018','FY2019','FY2020','FY2021','FY2022','FY2023','FY2024','FY2025'];
+const yrsShort=['FY18','FY19','FY20','FY21','FY22','FY23','FY24','FY25'];
+
+// ── SLIDE 3: Stacked Area — Asset Composition ──
+(function(){
+  const data = yrs.map((y,i)=>({
+    year:y,
+    cash:[693,560,2065,1524,846,811,835,739][i],
+    ar:[652,692,685,897,964,930,1049,1246][i],
+    investments:[1077,1210,1215,1467,1422,1608,1744,2102][i],
+    ppe:[1321,1433,1635,1821,2037,2230,2317,2318][i],
+    other:[938+381+67+53+130, 902+380+72+58+130, 799+374+78+66+138+273, 811+488+95+56+231+252, 582+484+99+58+230+269, 587+480+99+59+256+242, 672+475+104+67+331+238, 765+470+104+75+383+237][i]
+  }));
+  const keys=['cash','ar','investments','ppe','other'];
+  const labels=['Cash','Patient AR','LT Investments','PP&E Net','Other Assets'];
+  const colors=[C.blue,C.amber,C.teal,C.deep,C.ghost];
+  const w=880,h=320,ml=60,mr=20,mt=30,mb=40;
+  const svg=d3.select('#chart-asset-stack').append('svg').attr('width',w).attr('height',h);
+  const stack=d3.stack().keys(keys);
+  const series=stack(data);
+  const x=d3.scaleBand().domain(yrs).range([ml,w-mr]).padding(0.15);
+  const yMax=d3.max(series[series.length-1],d=>d[1]);
+  const y=d3.scaleLinear().domain([0,yMax*1.05]).range([h-mb,mt]);
+  svg.append('g').attr('transform',`translate(0,${h-mb})`).call(d3.axisBottom(x).tickSize(0)).select('.domain').remove();
+  svg.append('g').attr('transform',`translate(${ml},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d=>'$'+d3.format(',.0f')(d)+'M')).select('.domain').remove();
+  svg.selectAll('.tick line').attr('stroke',C.gray);
+  const area=d3.area().x(d=>x(d.data.year)+x.bandwidth()/2).y0(d=>y(d[0])).y1(d=>y(d[1])).curve(d3.curveMonotoneX);
+  svg.selectAll('.layer').data(series).join('path').attr('class','layer').attr('d',area).attr('fill',(d,i)=>colors[i]).attr('opacity',0.85);
+  const leg=svg.append('g').attr('transform',`translate(${ml+10},${mt-18})`);
+  labels.forEach((l,i)=>{const g=leg.append('g').attr('transform',`translate(${i*160},0)`);g.append('rect').attr('width',10).attr('height',10).attr('rx',2).attr('fill',colors[i]);g.append('text').attr('x',14).attr('y',9).text(l).attr('font-size',10).attr('fill',C.dark)});
+})();
+
+// ── SLIDE 4: Waterfall — Net Asset Growth Decomposition ──
+(function(){
+  const items=[
+    {label:'FY2018\nNet Assets',value:1788,type:'total'},
+    {label:'Cumulative\nOp. Income',value:1310,type:'up'},
+    {label:'Cumulative\nInv. Returns',value:1296,type:'up'},
+    {label:'Other\nChanges',value:-105,type:'down'},
+    {label:'FY2025\nNet Assets',value:4289,type:'total'}
+  ];
+  let running=0;
+  const bars=items.map(d=>{
+    if(d.type==='total')return{...d,y0:0,y1:d.value};
+    const y0=running; running+=d.value;
+    return{...d,y0:d.value>0?y0:y0+d.value, y1:d.value>0?y0+d.value:y0};
+  });
+  const w=880,h=330,ml=70,mr=30,mt=30,mb=60;
+  const svg=d3.select('#chart-na-waterfall').append('svg').attr('width',w).attr('height',h);
+  const x=d3.scaleBand().domain(items.map(d=>d.label)).range([ml,w-mr]).padding(0.3);
+  const y=d3.scaleLinear().domain([0,5000]).range([h-mb,mt]);
+  svg.append('g').attr('transform',`translate(${ml},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d=>'$'+d3.format(',')(d)+'M')).select('.domain').remove();
+  svg.selectAll('.tick line').attr('stroke',C.gray).attr('stroke-dasharray','4,4');
+  svg.selectAll('.wf-bar').data(bars).join('rect').attr('class','wf-bar')
+    .attr('x',d=>x(d.label)).attr('width',x.bandwidth()).attr('y',d=>y(d.y1)).attr('height',d=>Math.abs(y(d.y0)-y(d.y1)))
+    .attr('rx',4).attr('fill',d=>d.type==='total'?C.deep:d.type==='up'?C.green:C.red);
+  svg.selectAll('.wf-label').data(bars).join('text').attr('class','wf-label')
+    .attr('x',d=>x(d.label)+x.bandwidth()/2).attr('y',d=>y(d.y1)-6).attr('text-anchor','middle').attr('font-size',11).attr('font-weight',700).attr('fill',C.dark)
+    .text(d=>(d.value>0?'+':'')+d3.format('$,.0f')(d.value)+'M');
+  const xLabels=svg.append('g').attr('transform',`translate(0,${h-mb+8})`);
+  items.forEach(d=>{
+    const lines=d.label.split('\n');
+    const g=xLabels.append('text').attr('x',x(d.label)+x.bandwidth()/2).attr('text-anchor','middle').attr('font-size',10).attr('fill',C.dark);
+    lines.forEach((l,i)=>g.append('tspan').attr('x',x(d.label)+x.bandwidth()/2).attr('dy',i===0?0:13).text(l));
+  });
+  // connector lines
+  for(let i=0;i<bars.length-1;i++){
+    if(bars[i].type!=='total'||i===0){
+      const fromX=x(bars[i].label)+x.bandwidth();
+      const toX=x(bars[i+1].label);
+      const val=bars[i].type==='total'?bars[i].y1:(bars[i].y0+bars[i].value>bars[i].y0?bars[i].y1:bars[i].y0);
+      svg.append('line').attr('x1',fromX+2).attr('x2',toX-2).attr('y1',y(bars[i].type==='total'?bars[i].y1:running<=bars[i].y1?bars[i].y1:bars[i].y0)).attr('y2',y(bars[i].type==='total'?bars[i].y1:running<=bars[i].y1?bars[i].y1:bars[i].y0)).attr('stroke',C.gray).attr('stroke-dasharray','3,3');
+    }
+  }
+})();
+
+// ── SLIDE 5: Radial Gauges ──
+(function(){
+  const metrics=[
+    {label:'Op. Margin',actual:2.4,benchmark:3.5,max:6,unit:'%',invert:false},
+    {label:'EBIDA Margin',actual:5.5,benchmark:9.0,max:12,unit:'%',invert:false},
+    {label:'Days Cash',actual:122,benchmark:225,max:300,unit:'d',invert:false},
+    {label:'Days AR',actual:51,benchmark:48,max:70,unit:'d',invert:true},
+    {label:'Debt/Cap',actual:28.5,benchmark:33,max:55,unit:'%',invert:true},
+    {label:'CF Margin',actual:2.0,benchmark:7.0,max:10,unit:'%',invert:false},
+    {label:'CapEx/Depr',actual:8,benchmark:110,max:130,unit:'%',invert:false}
+  ];
+  const w=880,h=340,cols=4,rows=2,gw=w/cols,gh=h/rows,r=52;
+  const svg=d3.select('#chart-gauges').append('svg').attr('width',w).attr('height',h);
+  const arc=d3.arc().innerRadius(r-12).outerRadius(r).startAngle(-Math.PI*0.75);
+  metrics.forEach((m,i)=>{
+    const col=i%cols, row=Math.floor(i/cols);
+    const cx=gw*col+gw/2, cy=gh*row+gh/2+5;
+    const g=svg.append('g').attr('transform',`translate(${cx},${cy})`);
+    g.append('path').attr('d',arc.endAngle(Math.PI*0.75)()).attr('fill',C.lgray);
+    const ratio=Math.min(m.actual/m.max,1);
+    const endAngle=-Math.PI*0.75+ratio*Math.PI*1.5;
+    const isGood=m.invert?(m.actual<=m.benchmark):(m.actual>=m.benchmark);
+    const isClose=m.invert?(m.actual<=m.benchmark*1.2):(m.actual>=m.benchmark*0.8);
+    const color=isGood?C.green:isClose?C.amber:C.red;
+    g.append('path').attr('d',arc.endAngle(endAngle)()).attr('fill',color);
+    const bmRatio=Math.min(m.benchmark/m.max,1);
+    const bmAngle=-Math.PI*0.75+bmRatio*Math.PI*1.5;
+    const bmX=Math.cos(bmAngle-Math.PI/2)*(r+6), bmY=Math.sin(bmAngle-Math.PI/2)*(r+6);
+    const bmX2=Math.cos(bmAngle-Math.PI/2)*(r-16), bmY2=Math.sin(bmAngle-Math.PI/2)*(r-16);
+    g.append('line').attr('x1',bmX2).attr('y1',bmY2).attr('x2',bmX).attr('y2',bmY).attr('stroke',C.amber).attr('stroke-width',2.5).attr('stroke-dasharray','4,3');
+    g.append('text').attr('y',-2).attr('text-anchor','middle').attr('font-size',20).attr('font-weight',700).attr('fill',color).text(m.actual+m.unit);
+    g.append('text').attr('y',16).attr('text-anchor','middle').attr('font-size',9).attr('fill',C.gray60||'#6B6F73').text(m.label);
+    g.append('text').attr('y',28).attr('text-anchor','middle').attr('font-size',8).attr('fill',C.amber).text('▸ '+m.benchmark+m.unit+' median');
+  });
+})();
+
+// ── SLIDE 6: Leverage — Dual-axis line: Debt/Cap% + Net Assets ──
+(function(){
+  const data=yrs.map((y,i)=>({year:y,debtCap:[45.9,46.7,53.6,38.0,39.8,36.3,30.2,28.5][i],na:[1788,1796,1700,2748,2692,3127,3737,4289][i],debt:[1514,1574,1967,1687,1782,1779,1616,1706][i]}));
+  const w=880,h=320,ml=65,mr=65,mt=30,mb=40;
+  const svg=d3.select('#chart-leverage').append('svg').attr('width',w).attr('height',h);
+  const x=d3.scalePoint().domain(yrs).range([ml,w-mr]).padding(0.5);
+  const yL=d3.scaleLinear().domain([0,60]).range([h-mb,mt]);
+  const yR=d3.scaleLinear().domain([0,5000]).range([h-mb,mt]);
+  svg.append('g').attr('transform',`translate(0,${h-mb})`).call(d3.axisBottom(x).tickSize(0)).select('.domain').remove();
+  svg.append('g').attr('transform',`translate(${ml},0)`).call(d3.axisLeft(yL).ticks(5).tickFormat(d=>d+'%')).select('.domain').remove();
+  svg.append('g').attr('transform',`translate(${w-mr},0)`).call(d3.axisRight(yR).ticks(5).tickFormat(d=>'$'+d3.format(',')(d)+'M')).select('.domain').remove();
+  svg.selectAll('.tick line').attr('stroke',C.gray);
+  // benchmark line
+  svg.append('line').attr('x1',ml).attr('x2',w-mr).attr('y1',yL(33)).attr('y2',yL(33)).attr('stroke',C.amber).attr('stroke-dasharray','6,4').attr('stroke-width',2);
+  svg.append('text').attr('x',w-mr+4).attr('y',yL(33)+4).attr('font-size',9).attr('fill',C.amber).text('33% ceiling');
+  // net assets bars
+  svg.selectAll('.na-bar').data(data).join('rect').attr('x',d=>x(d.year)-20).attr('width',40).attr('y',d=>yR(d.na)).attr('height',d=>h-mb-yR(d.na)).attr('fill',C.ghost).attr('rx',4).attr('opacity',0.6);
+  // debt/cap line
+  const line=d3.line().x(d=>x(d.year)).y(d=>yL(d.debtCap)).curve(d3.curveMonotoneX);
+  svg.append('path').datum(data).attr('d',line).attr('fill','none').attr('stroke',C.red).attr('stroke-width',3);
+  svg.selectAll('.dc-dot').data(data).join('circle').attr('cx',d=>x(d.year)).attr('cy',d=>yL(d.debtCap)).attr('r',5).attr('fill',C.red);
+  svg.selectAll('.dc-lbl').data(data).join('text').attr('x',d=>x(d.year)).attr('y',d=>yL(d.debtCap)-10).attr('text-anchor','middle').attr('font-size',10).attr('font-weight',700).attr('fill',C.red).text(d=>d.debtCap+'%');
+  // legend
+  const leg=svg.append('g').attr('transform',`translate(${ml+10},${mt-15})`);
+  [{c:C.ghost,l:'Net Assets ($M)'},{c:C.red,l:'Debt/Cap %'},{c:C.amber,l:'A-Rated Ceiling (33%)'}].forEach((d,i)=>{const g=leg.append('g').attr('transform',`translate(${i*200},0)`);g.append('rect').attr('width',10).attr('height',10).attr('rx',2).attr('fill',d.c);g.append('text').attr('x',14).attr('y',9).text(d.l).attr('font-size',10).attr('fill',C.dark)});
+})();
+
+// ── SLIDE 7: Pension ──
+(function(){
+  const data=[{y:'FY2018',v:290},{y:'FY2019',v:437},{y:'FY2020',v:629},{y:'FY2021',v:305},{y:'FY2022',v:188},{y:'FY2023',v:94},{y:'FY2024',v:17},{y:'FY2025',v:14}];
+  const w=880,h=280,ml=60,mr=30,mt=20,mb=40;
+  const svg=d3.select('#chart-pension').append('svg').attr('width',w).attr('height',h);
+  const x=d3.scaleBand().domain(data.map(d=>d.y)).range([ml,w-mr]).padding(0.25);
+  const y=d3.scaleLinear().domain([0,700]).range([h-mb,mt]);
+  svg.append('g').attr('transform',`translate(0,${h-mb})`).call(d3.axisBottom(x).tickSize(0)).select('.domain').remove();
+  svg.append('g').attr('transform',`translate(${ml},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d=>'$'+d+'M')).select('.domain').remove();
+  svg.selectAll('.tick line').attr('stroke',C.gray);
+  const area=d3.area().x(d=>x(d.y)+x.bandwidth()/2).y0(h-mb).y1(d=>y(d.v)).curve(d3.curveMonotoneX);
+  svg.append('path').datum(data).attr('d',area).attr('fill',C.red).attr('opacity',0.15);
+  const line=d3.line().x(d=>x(d.y)+x.bandwidth()/2).y(d=>y(d.v)).curve(d3.curveMonotoneX);
+  svg.append('path').datum(data).attr('d',line).attr('fill','none').attr('stroke',C.red).attr('stroke-width',3);
+  svg.selectAll('.p-dot').data(data).join('circle').attr('cx',d=>x(d.y)+x.bandwidth()/2).attr('cy',d=>y(d.v)).attr('r',5).attr('fill',C.red);
+  svg.selectAll('.p-lbl').data(data).join('text').attr('x',d=>x(d.y)+x.bandwidth()/2).attr('y',d=>y(d.v)-10).attr('text-anchor','middle').attr('font-size',10).attr('font-weight',700).attr('fill',d=>d.v<50?C.green:C.red).text(d=>'$'+d.v+'M');
+})();
+
+// ── SLIDE 8: Liquidity — Stacked bar (cash + investments) with DCOH line ──
+(function(){
+  const data=yrs.map((y,i)=>({year:y,cash:[693,560,2065,1524,846,811,835,739][i],inv:[1077,1210,1215,1467,1422,1608,1744,2102][i],dcoh:[123,121,220,175,119,120,120,122][i]}));
+  const w=880,h=320,ml=65,mr=55,mt=30,mb=40;
+  const svg=d3.select('#chart-liquidity').append('svg').attr('width',w).attr('height',h);
+  const x=d3.scaleBand().domain(yrs).range([ml,w-mr]).padding(0.2);
+  const yL=d3.scaleLinear().domain([0,4000]).range([h-mb,mt]);
+  const yR=d3.scaleLinear().domain([0,300]).range([h-mb,mt]);
+  svg.append('g').attr('transform',`translate(0,${h-mb})`).call(d3.axisBottom(x).tickSize(0)).select('.domain').remove();
+  svg.append('g').attr('transform',`translate(${ml},0)`).call(d3.axisLeft(yL).ticks(5).tickFormat(d=>'$'+d3.format(',')(d)+'M')).select('.domain').remove();
+  svg.append('g').attr('transform',`translate(${w-mr},0)`).call(d3.axisRight(yR).ticks(5).tickFormat(d=>d+'d')).select('.domain').remove();
+  svg.selectAll('.tick line').attr('stroke',C.gray);
+  // benchmark
+  svg.append('line').attr('x1',ml).attr('x2',w-mr).attr('y1',yR(225)).attr('y2',yR(225)).attr('stroke',C.amber).attr('stroke-dasharray','6,4').attr('stroke-width',2);
+  // stacked bars
+  svg.selectAll('.inv-bar').data(data).join('rect').attr('x',d=>x(d.year)).attr('width',x.bandwidth()).attr('y',d=>yL(d.cash+d.inv)).attr('height',d=>yL(0)-yL(d.inv)).attr('fill',C.teal).attr('rx',4);
+  svg.selectAll('.cash-bar').data(data).join('rect').attr('x',d=>x(d.year)).attr('width',x.bandwidth()).attr('y',d=>yL(d.cash)).attr('height',d=>yL(0)-yL(d.cash)).attr('fill',C.blue).attr('rx',4);
+  // DCOH line
+  const line=d3.line().x(d=>x(d.year)+x.bandwidth()/2).y(d=>yR(d.dcoh)).curve(d3.curveMonotoneX);
+  svg.append('path').datum(data).attr('d',line).attr('fill','none').attr('stroke',C.red).attr('stroke-width',2.5);
+  svg.selectAll('.d-dot').data(data).join('circle').attr('cx',d=>x(d.year)+x.bandwidth()/2).attr('cy',d=>yR(d.dcoh)).attr('r',4).attr('fill',C.red);
+  svg.selectAll('.d-lbl').data(data).join('text').attr('x',d=>x(d.year)+x.bandwidth()/2).attr('y',d=>yR(d.dcoh)-8).attr('text-anchor','middle').attr('font-size',9).attr('font-weight',700).attr('fill',C.red).text(d=>d.dcoh+'d');
+  const leg=svg.append('g').attr('transform',`translate(${ml+5},${mt-16})`);
+  [{c:C.blue,l:'Cash'},{c:C.teal,l:'LT Investments'},{c:C.red,l:'Days Cash (right axis)'},{c:C.amber,l:'225d A-rated median'}].forEach((d,i)=>{const g=leg.append('g').attr('transform',`translate(${i*180},0)`);g.append('rect').attr('width',10).attr('height',10).attr('rx',2).attr('fill',d.c);g.append('text').attr('x',14).attr('y',9).text(d.l).attr('font-size',9).attr('fill',C.dark)});
+})();
+
+// ── SLIDE 9: Days AR ──
+(function(){
+  const data=yrs.map((y,i)=>({year:y,dar:[42.4,44.4,43.2,48.7,48.3,43.9,46.4,50.7][i]}));
+  const w=880,h=260,ml=55,mr=20,mt=25,mb=35;
+  const svg=d3.select('#chart-days-ar').append('svg').attr('width',w).attr('height',h);
+  const x=d3.scaleBand().domain(yrs).range([ml,w-mr]).padding(0.25);
+  const y=d3.scaleLinear().domain([35,55]).range([h-mb,mt]);
+  svg.append('g').attr('transform',`translate(0,${h-mb})`).call(d3.axisBottom(x).tickSize(0)).select('.domain').remove();
+  svg.append('g').attr('transform',`translate(${ml},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d=>d+'d')).select('.domain').remove();
+  svg.selectAll('.tick line').attr('stroke',C.gray);
+  svg.append('line').attr('x1',ml).attr('x2',w-mr).attr('y1',y(48)).attr('y2',y(48)).attr('stroke',C.amber).attr('stroke-dasharray','6,4').attr('stroke-width',2);
+  svg.append('text').attr('x',w-mr-5).attr('y',y(48)-5).attr('text-anchor','end').attr('font-size',9).attr('fill',C.amber).text('48d A-rated median');
+  svg.selectAll('.ar-bar').data(data).join('rect').attr('x',d=>x(d.year)).attr('width',x.bandwidth())
+    .attr('y',d=>y(d.dar)).attr('height',d=>y(35)-y(d.dar)).attr('fill',d=>d.dar>48?C.red:d.dar>45?C.amber:C.green).attr('rx',4);
+  svg.selectAll('.ar-lbl').data(data).join('text').attr('x',d=>x(d.year)+x.bandwidth()/2).attr('y',d=>y(d.dar)-6).attr('text-anchor','middle').attr('font-size',10).attr('font-weight',700).attr('fill',C.dark).text(d=>d.dar+'d');
+})();
+
+// ── SLIDE 10: CapEx vs Depreciation ──
+(function(){
+  const data=yrs.map((y,i)=>({year:y,capex:[21,30,33,41,51,70,22,20][i],depr:[206,202,205,216,219,223,248,272][i],ratio:[10.1,14.7,16.2,19.0,23.4,31.3,9.1,7.5][i]}));
+  const w=880,h=260,ml=55,mr=55,mt=25,mb=35;
+  const svg=d3.select('#chart-capex').append('svg').attr('width',w).attr('height',h);
+  const x=d3.scaleBand().domain(yrs).range([ml,w-mr]).padding(0.15);
+  const yL=d3.scaleLinear().domain([0,300]).range([h-mb,mt]);
+  svg.append('g').attr('transform',`translate(0,${h-mb})`).call(d3.axisBottom(x).tickSize(0)).select('.domain').remove();
+  svg.append('g').attr('transform',`translate(${ml},0)`).call(d3.axisLeft(yL).ticks(5).tickFormat(d=>'$'+d+'M')).select('.domain').remove();
+  svg.selectAll('.tick line').attr('stroke',C.gray);
+  const bw=x.bandwidth()/2-2;
+  svg.selectAll('.dep-bar').data(data).join('rect').attr('x',d=>x(d.year)).attr('width',bw).attr('y',d=>yL(d.depr)).attr('height',d=>yL(0)-yL(d.depr)).attr('fill',C.ghost).attr('rx',4);
+  svg.selectAll('.cap-bar').data(data).join('rect').attr('x',d=>x(d.year)+bw+4).attr('width',bw).attr('y',d=>yL(d.capex)).attr('height',d=>yL(0)-yL(d.capex)).attr('fill',C.red).attr('rx',4);
+  svg.selectAll('.r-lbl').data(data).join('text').attr('x',d=>x(d.year)+x.bandwidth()/2).attr('y',d=>yL(d.capex)-6).attr('text-anchor','middle').attr('font-size',9).attr('font-weight',700).attr('fill',C.red).text(d=>d.ratio+'%');
+  const leg=svg.append('g').attr('transform',`translate(${ml+5},${mt-14})`);
+  [{c:C.ghost,l:'Depreciation'},{c:C.red,l:'CapEx (ratio shown above)'}].forEach((d,i)=>{const g=leg.append('g').attr('transform',`translate(${i*200},0)`);g.append('rect').attr('width',10).attr('height',10).attr('rx',2).attr('fill',d.c);g.append('text').attr('x',14).attr('y',9).text(d.l).attr('font-size',10).attr('fill',C.dark)});
+})();
+
+// ── SLIDE 11: Self-Insurance ──
+(function(){
+  const data=yrs.map((y,i)=>({year:y,v:[283,273,282,328,359,336,363,394][i]}));
+  const w=880,h=240,ml=55,mr=20,mt=25,mb=35;
+  const svg=d3.select('#chart-self-ins').append('svg').attr('width',w).attr('height',h);
+  const x=d3.scaleBand().domain(yrs).range([ml,w-mr]).padding(0.25);
+  const y=d3.scaleLinear().domain([200,420]).range([h-mb,mt]);
+  svg.append('g').attr('transform',`translate(0,${h-mb})`).call(d3.axisBottom(x).tickSize(0)).select('.domain').remove();
+  svg.append('g').attr('transform',`translate(${ml},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(d=>'$'+d+'M')).select('.domain').remove();
+  svg.selectAll('.tick line').attr('stroke',C.gray);
+  const area=d3.area().x(d=>x(d.year)+x.bandwidth()/2).y0(y(200)).y1(d=>y(d.v)).curve(d3.curveMonotoneX);
+  svg.append('path').datum(data).attr('d',area).attr('fill',C.amber).attr('opacity',0.2);
+  const line=d3.line().x(d=>x(d.year)+x.bandwidth()/2).y(d=>y(d.v)).curve(d3.curveMonotoneX);
+  svg.append('path').datum(data).attr('d',line).attr('fill','none').attr('stroke',C.amber).attr('stroke-width',3);
+  svg.selectAll('.s-dot').data(data).join('circle').attr('cx',d=>x(d.year)+x.bandwidth()/2).attr('cy',d=>y(d.v)).attr('r',5).attr('fill',C.amber);
+  svg.selectAll('.s-lbl').data(data).join('text').attr('x',d=>x(d.year)+x.bandwidth()/2).attr('y',d=>y(d.v)-10).attr('text-anchor','middle').attr('font-size',10).attr('font-weight',700).attr('fill',C.dark).text(d=>'$'+d.v+'M');
+})();
+
+// ── SLIDE 12: Inv Returns vs Op Income — grouped bar ──
+(function(){
+  const data=yrs.map((y,i)=>({year:y,opInc:[161,152,131,260,81,147,159,219][i],invRet:[119,53,20,511,-271,214,359,346][i]}));
+  const w=880,h=320,ml=65,mr=20,mt=30,mb=40;
+  const svg=d3.select('#chart-inv-vs-ops').append('svg').attr('width',w).attr('height',h);
+  const x0=d3.scaleBand().domain(yrs).range([ml,w-mr]).padding(0.2);
+  const x1=d3.scaleBand().domain(['op','inv']).range([0,x0.bandwidth()]).padding(0.08);
+  const y=d3.scaleLinear().domain([-350,550]).range([h-mb,mt]);
+  svg.append('g').attr('transform',`translate(0,${h-mb})`).call(d3.axisBottom(x0).tickSize(0)).select('.domain').remove();
+  svg.append('g').attr('transform',`translate(${ml},0)`).call(d3.axisLeft(y).ticks(6).tickFormat(d=>(d>=0?'+':'')+d3.format('$,')(d)+'M')).select('.domain').remove();
+  svg.selectAll('.tick line').attr('stroke',C.gray);
+  svg.append('line').attr('x1',ml).attr('x2',w-mr).attr('y1',y(0)).attr('y2',y(0)).attr('stroke',C.dark).attr('stroke-width',1);
+  data.forEach(d=>{
+    const g=svg.append('g').attr('transform',`translate(${x0(d.year)},0)`);
+    g.append('rect').attr('x',x1('op')).attr('width',x1.bandwidth()).attr('y',y(Math.max(0,d.opInc))).attr('height',Math.abs(y(0)-y(d.opInc))).attr('fill',C.blue).attr('rx',4);
+    g.append('rect').attr('x',x1('inv')).attr('width',x1.bandwidth()).attr('y',y(Math.max(0,d.invRet))).attr('height',Math.abs(y(0)-y(d.invRet))).attr('fill',d.invRet>=0?C.teal:C.red).attr('rx',4);
+  });
+  const leg=svg.append('g').attr('transform',`translate(${ml+5},${mt-16})`);
+  [{c:C.blue,l:'Operating Income'},{c:C.teal,l:'Investment Returns (green = gain, red = loss)'}].forEach((d,i)=>{const g=leg.append('g').attr('transform',`translate(${i*280},0)`);g.append('rect').attr('width',10).attr('height',10).attr('rx',2).attr('fill',d.c);g.append('text').attr('x',14).attr('y',9).text(d.l).attr('font-size',10).attr('fill',C.dark)});
+  // cumulative annotation
+  svg.append('text').attr('x',w-mr-5).attr('y',mt+5).attr('text-anchor','end').attr('font-size',10).attr('fill',C.dark)
+    .text('Cumulative: Op Inc $1,310M vs Inv Returns $1,351M');
+})();
+</script>
+</body>
+</html>

@@ -15,6 +15,10 @@ _STATEMENT_TO_COMMON = {
     "cf": ("cash_flow", "CASH_FLOW", "CF_NATIVE"),
 }
 
+_CF_SECTION_CONCEPTS = {
+    "cf_operating", "cf_investing", "cf_financing", "cf_net_change_in_cash",
+}
+
 
 def write_statement(
     cur,
@@ -85,8 +89,27 @@ def write_statement(
                     )
                 continue
 
-            # subtotals skipped in COMMON (we keep only leaf line items there)
+            # For CF statements, section-level subtotals ARE the meaningful
+            # concepts (cf_operating, cf_investing, cf_financing, cf_net_change_in_cash).
+            # Component detail lines within those sections should NOT overwrite them.
+            # For IS/BS, subtotals are still skipped (leaf items carry the data).
             if line.is_subtotal:
+                if stmt_code == "cf":
+                    proposal = map_label(cur, org_id, common_stmt_name, line.native_label)
+                    if proposal.concept in _CF_SECTION_CONCEPTS:
+                        common_rows.append(
+                            {
+                                "FILING_ID": filing_id,
+                                "ORG_ID": org_id,
+                                "FY_LABEL": amt.fy_label,
+                                "FISCAL_YEAR_END": fye_by_year.get(amt.fy_label),
+                                "CONCEPT": proposal.concept,
+                                "AMOUNT": amt.amount,
+                                "NATIVE_LABEL": line.native_label,
+                                "SOURCE_PAGE": line.source_page,
+                                "CONFIDENCE": amt.confidence,
+                            }
+                        )
                 continue
 
             proposal = map_label(cur, org_id, common_stmt_name, line.native_label)
@@ -105,6 +128,9 @@ def write_statement(
                         payload={"rationale": proposal.rationale, "proposed_concept": proposal.concept},
                     )
                 )
+                continue
+
+            if stmt_code == "cf" and proposal.concept in _CF_SECTION_CONCEPTS:
                 continue
 
             common_rows.append(

@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedStar Health — Executive Summary</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --ac-blue: #004BFF;
+  --ac-deep-blue: #0C36B4;
+  --ac-blue-mid: #4A78FF;
+  --ac-blue-pale: #7BA3FF;
+  --ac-blue-ghost: #B3C8FF;
+  --ac-teal: #4CC6C6;
+  --ac-amber: #F4B73F;
+  --ac-green: #169873;
+  --ac-red: #B83232;
+  --ac-dark: #22272D;
+  --ac-gray-60: #6B6F73;
+  --ac-gray-40: #E8E9EA;
+  --ac-light-gray: #F3F4F5;
+  --ac-white: #FFFFFF;
+  --font-family: Arial, Helvetica, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --gradient-tl: linear-gradient(135deg, #004BFF 0%, #0C36B4 100%);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-family); background: #E8E9EA; color: var(--ac-dark); }
+
+.slide-frame {
+  position: relative;
+  width: 960px;
+  height: 540px;
+  margin: 24px auto;
+  background: var(--ac-white);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  overflow: hidden;
+  page-break-after: always;
+}
+
+.slide-cover {
+  background: var(--gradient-tl);
+  color: var(--ac-white);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 80px;
+}
+.slide-cover .logo { height: 36px; margin-bottom: 40px; }
+.slide-cover h1 { font-size: var(--font-size-4xl); font-weight: 700; line-height: 1.2; margin-bottom: 12px; }
+.slide-cover .subtitle { font-size: var(--font-size-lg); opacity: 0.85; }
+.slide-cover .meta { position: absolute; bottom: 40px; left: 80px; font-size: var(--font-size-xs); opacity: 0.6; }
+
+.slide-divider {
+  background: var(--ac-deep-blue);
+  color: var(--ac-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px;
+}
+.slide-divider h2 { font-size: var(--font-size-3xl); font-weight: 700; }
+
+.slide-content {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.slide-header {
+  border-top: 4px solid var(--ac-blue);
+  padding: 16px 40px 8px;
+}
+.slide-header h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--ac-blue);
+  line-height: 1.3;
+}
+.slide-body {
+  flex: 1;
+  padding: 8px 40px 0;
+  overflow: hidden;
+}
+.slide-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 40px;
+  font-size: var(--font-size-xs);
+  color: var(--ac-gray-60);
+}
+.slide-footer img { height: 20px; }
+
+.kpi-strip {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.kpi-block {
+  flex: 1;
+  background: var(--ac-light-gray);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  text-align: center;
+}
+.kpi-block .kpi-value {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--ac-blue);
+}
+.kpi-block .kpi-label {
+  font-size: var(--font-size-xs);
+  color: var(--ac-gray-60);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+.callout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.callout {
+  background: var(--ac-light-gray);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  border-left: 4px solid var(--ac-blue);
+}
+.callout.green { border-left-color: var(--ac-green); }
+.callout.red { border-left-color: var(--ac-red); }
+.callout.amber { border-left-color: var(--ac-amber); }
+.callout h4 { font-size: var(--font-size-sm); font-weight: 700; margin-bottom: 4px; }
+.callout p { font-size: var(--font-size-xs); color: var(--ac-gray-60); line-height: 1.4; }
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs);
+}
+.data-table th {
+  background: var(--ac-blue);
+  color: var(--ac-white);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.data-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--ac-gray-40);
+}
+.data-table tr:nth-child(even) td { background: var(--ac-light-gray); }
+.data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 280px;
+}
+.chart-container.short { height: 220px; }
+
+ul.insight-list { list-style: none; padding: 0; }
+ul.insight-list li {
+  padding: 8px 0 8px 24px;
+  position: relative;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  border-bottom: 1px solid var(--ac-gray-40);
+}
+ul.insight-list li:last-child { border-bottom: none; }
+ul.insight-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ac-blue);
+}
+ul.insight-list li.green::before { background: var(--ac-green); }
+ul.insight-list li.amber::before { background: var(--ac-amber); }
+ul.insight-list li.red::before { background: var(--ac-red); }
+
+.source-line {
+  font-size: 0.65rem;
+  color: var(--ac-gray-60);
+  margin-top: 8px;
+}
+
+.phase-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.phase-block {
+  flex: 1;
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  color: var(--ac-white);
+}
+.phase-block h4 { font-size: var(--font-size-sm); font-weight: 700; margin-bottom: 6px; }
+.phase-block ul { font-size: var(--font-size-xs); padding-left: 16px; line-height: 1.6; }
+.phase-1 { background: var(--ac-blue); }
+.phase-2 { background: var(--ac-deep-blue); }
+.phase-3 { background: var(--ac-blue-mid); }
+
+.benchmark-row {
+  display: flex;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--ac-gray-40);
+  font-size: var(--font-size-sm);
+}
+.benchmark-row:last-child { border-bottom: none; }
+.benchmark-label { width: 140px; font-weight: 600; }
+.benchmark-bar-wrap { flex: 1; position: relative; height: 22px; background: var(--ac-light-gray); border-radius: 4px; overflow: hidden; }
+.benchmark-bar { height: 100%; border-radius: 4px; }
+.benchmark-marker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 2px;
+  border-left: 2px dashed var(--ac-amber);
+}
+.benchmark-values { width: 120px; text-align: right; font-size: var(--font-size-xs); color: var(--ac-gray-60); }
+
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: var(--font-size-xs); font-weight: 700; }
+.tag-green { background: #E6F5EE; color: var(--ac-green); }
+.tag-red { background: #FDEAEA; color: var(--ac-red); }
+.tag-amber { background: #FFF5E0; color: #B8860B; }
+
+@media print {
+  body { background: white; }
+  .slide-frame { box-shadow: none; margin: 0; page-break-after: always; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ SLIDE 1: COVER ═══════════════════ -->
+<div class="slide-frame slide-cover">
+  <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-white.png" alt="Acuvance Coker" class="logo">
+  <h1>MedStar Health, Inc.</h1>
+  <div class="subtitle">Financial Performance &amp; Strategic Opportunity Assessment</div>
+  <div class="meta">CONFIDENTIAL &nbsp;|&nbsp; May 2026 &nbsp;|&nbsp; Executive Summary</div>
+</div>
+
+<!-- ═══════════════════ SLIDE 2: ORGANIZATION SNAPSHOT ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Organization at a Glance</h2></div>
+  <div class="slide-body">
+    <div class="kpi-strip">
+      <div class="kpi-block"><div class="kpi-value">$9.0B</div><div class="kpi-label">FY2025 Revenue</div></div>
+      <div class="kpi-block"><div class="kpi-value">10</div><div class="kpi-label">Hospitals</div></div>
+      <div class="kpi-block"><div class="kpi-value">300+</div><div class="kpi-label">Care Sites</div></div>
+      <div class="kpi-block"><div class="kpi-value">MD/DC/VA</div><div class="kpi-label">Service Area</div></div>
+      <div class="kpi-block"><div class="kpi-value">7.0%</div><div class="kpi-label">Revenue CAGR</div></div>
+    </div>
+    <div class="callout-grid">
+      <div class="callout">
+        <h4>Tax-Exempt Nonstock Corporation</h4>
+        <p>Formed 1998 via Helix Health + Medlantic merger. Flagship: MedStar Georgetown University Hospital. Academic affiliation through 2066.</p>
+      </div>
+      <div class="callout">
+        <h4>Audit & Data Coverage</h4>
+        <p>9 filings analyzed (FY2017–FY2025). Unqualified opinions all years. June 30 fiscal year end. 14 footnotes with 53 structured callouts in latest filing.</p>
+      </div>
+      <div class="callout">
+        <h4>Revenue Composition (FY2025)</h4>
+        <p>Net Patient Service Revenue: $7.5B (84%) &nbsp;|&nbsp; Premium Revenue: $1.0B (11%) &nbsp;|&nbsp; Other Operating: $0.4B (5%)</p>
+      </div>
+      <div class="callout">
+        <h4>Payer Mix (FY2024 data)</h4>
+        <p>Medicare: 33% &nbsp;|&nbsp; Medicaid: 17% &nbsp;|&nbsp; BCBS: 18% &nbsp;|&nbsp; Other Commercial: 26% &nbsp;|&nbsp; Self-Pay: 6%</p>
+      </div>
+    </div>
+    <div class="source-line">Source: Audited Financial Statements, FY2017–FY2025; Note 9 "Business and Credit Concentrations"</div>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>2 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 3: FINANCIAL TRAJECTORY ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Revenue Has Doubled, But Margins Have Not Followed</h2></div>
+  <div class="slide-body">
+    <div class="kpi-strip">
+      <div class="kpi-block"><div class="kpi-value">+60%</div><div class="kpi-label">Revenue Growth FY18→25</div></div>
+      <div class="kpi-block"><div class="kpi-value">2.4%</div><div class="kpi-label">FY2025 Op. Margin</div></div>
+      <div class="kpi-block"><div class="kpi-value" style="color:var(--ac-red)">5.5%</div><div class="kpi-label">EBIDA vs 9% Median</div></div>
+    </div>
+    <div class="chart-container short">
+      <canvas id="chart-trajectory"></canvas>
+    </div>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025 &nbsp;|&nbsp; Benchmark: Moody's A-rated health system median</div>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>3 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 4: WHERE MEDSTAR IS WINNING ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Where MedStar Is Winning</h2></div>
+  <div class="slide-body">
+    <ul class="insight-list">
+      <li class="green"><strong>Revenue growth engine intact</strong> — 7.0% CAGR (FY2018–FY2025), accelerating to 8.7% in FY2025. Net patient service revenue grew from $4.7B to $7.5B.</li>
+      <li class="green"><strong>Pension liability virtually eliminated</strong> — From $629M (FY2020) to $14M (FY2025), a $615M reduction. Plan is now overfunded with $58.7M in pension assets. Frees future cash flow.</li>
+      <li class="green"><strong>Balance sheet dramatically strengthened</strong> — Unrestricted net assets grew from $1.8B to $4.3B (+140%). Debt-to-capitalization improved from 45.9% to 28.5%, well below A-rated ceiling of 33%.</li>
+      <li class="green"><strong>Investment portfolio at $2.1B</strong> — Long-term investments nearly doubled since FY2018, providing strategic optionality and non-operating income.</li>
+      <li class="green"><strong>Labor cost discipline</strong> — Labor as % of revenue improved from 57.7% peak (FY2020) to 54.3% (FY2025), now within the 50–55% benchmark range.</li>
+    </ul>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>4 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 5: THE CORE CHALLENGE ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>The Core Challenge: Growth Without Operating Leverage</h2></div>
+  <div class="slide-body">
+    <div class="callout-grid">
+      <div class="callout red" style="grid-column: 1 / -1;">
+        <h4>Revenue and expenses are growing in lockstep — every dollar of new revenue is consumed by a matching dollar of cost</h4>
+        <p>Revenue CAGR: 7.0% &nbsp;|&nbsp; OpEx CAGR: 7.0% &nbsp;|&nbsp; FY2018–FY2025. At $9B, each 1% of margin improvement = $90M.</p>
+      </div>
+    </div>
+    <ul class="insight-list">
+      <li class="red"><strong>Operating margin has never reached A-rated median (3.0–4.0%)</strong> — Best year was FY2021 at 3.86%, distorted by $200M+ in CARES Act revenues. Normalized margin is 1.9–2.4%.</li>
+      <li class="red"><strong>EBIDA margin at 5.5% vs. 8–10% peer median</strong> — The 250–450bp gap on $9B revenue represents $225M+ in structural underperformance.</li>
+      <li class="amber"><strong>Operating CF margin collapsed to 2.0%</strong> — Down from 4.8% in FY2019. Healthy systems sustain 6–8%. MedStar generates ~$180M vs. a $540–720M benchmark.</li>
+      <li class="amber"><strong>FY2022 exposed the fragility</strong> — When stimulus evaporated, operating income fell to $81M on $7.3B revenue (1.1% margin). No buffer exists for the next cost shock.</li>
+    </ul>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>5 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 6: COST STRUCTURE ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Supply Chain and Purchased Services Are Driving Cost Escalation</h2></div>
+  <div class="slide-body">
+    <div class="kpi-strip">
+      <div class="kpi-block"><div class="kpi-value" style="color:var(--ac-red)">16.9%</div><div class="kpi-label">Supplies % Rev</div></div>
+      <div class="kpi-block"><div class="kpi-value" style="color:var(--ac-red)">14.6%</div><div class="kpi-label">Purchased % OpEx</div></div>
+      <div class="kpi-block"><div class="kpi-value" style="color:var(--ac-green)">54.3%</div><div class="kpi-label">Labor % Rev</div></div>
+    </div>
+    <div class="chart-container short">
+      <canvas id="chart-costs"></canvas>
+    </div>
+    <div class="source-line">Source: Audited Financial Statements, FY2018–FY2025 &nbsp;|&nbsp; Benchmarks: Labor 50–55%, Purchased Svcs 10–12% of OpEx</div>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>6 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 7: BALANCE SHEET & LIQUIDITY ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Balance Sheet Is Strong, But Liquidity and Capital Investment Lag</h2></div>
+  <div class="slide-body">
+    <div class="benchmark-row">
+      <div class="benchmark-label">Op. Margin</div>
+      <div class="benchmark-bar-wrap">
+        <div class="benchmark-bar" style="width:69%;background:var(--ac-red);border-radius:4px;"></div>
+        <div class="benchmark-marker" style="left:100%;"></div>
+      </div>
+      <div class="benchmark-values">2.4% vs <strong>3.5%</strong></div>
+    </div>
+    <div class="benchmark-row">
+      <div class="benchmark-label">EBIDA Margin</div>
+      <div class="benchmark-bar-wrap">
+        <div class="benchmark-bar" style="width:61%;background:var(--ac-red);border-radius:4px;"></div>
+        <div class="benchmark-marker" style="left:100%;"></div>
+      </div>
+      <div class="benchmark-values">5.5% vs <strong>9.0%</strong></div>
+    </div>
+    <div class="benchmark-row">
+      <div class="benchmark-label">Days Cash</div>
+      <div class="benchmark-bar-wrap">
+        <div class="benchmark-bar" style="width:54%;background:var(--ac-amber);border-radius:4px;"></div>
+        <div class="benchmark-marker" style="left:100%;"></div>
+      </div>
+      <div class="benchmark-values">122d vs <strong>225d</strong></div>
+    </div>
+    <div class="benchmark-row">
+      <div class="benchmark-label">Days AR</div>
+      <div class="benchmark-bar-wrap">
+        <div class="benchmark-bar" style="width:100%;background:var(--ac-amber);border-radius:4px;"></div>
+        <div class="benchmark-marker" style="left:94%;"></div>
+      </div>
+      <div class="benchmark-values">51d vs <strong>48d</strong></div>
+    </div>
+    <div class="benchmark-row">
+      <div class="benchmark-label">Debt / Cap</div>
+      <div class="benchmark-bar-wrap">
+        <div class="benchmark-bar" style="width:86%;background:var(--ac-green);border-radius:4px;"></div>
+        <div class="benchmark-marker" style="left:100%;"></div>
+      </div>
+      <div class="benchmark-values"><span class="tag tag-green">28.5%</span> vs 33%</div>
+    </div>
+    <div class="benchmark-row">
+      <div class="benchmark-label">CF Margin</div>
+      <div class="benchmark-bar-wrap">
+        <div class="benchmark-bar" style="width:29%;background:var(--ac-red);border-radius:4px;"></div>
+        <div class="benchmark-marker" style="left:100%;"></div>
+      </div>
+      <div class="benchmark-values">2.0% vs <strong>7.0%</strong></div>
+    </div>
+    <div class="benchmark-row">
+      <div class="benchmark-label">CapEx / Depr</div>
+      <div class="benchmark-bar-wrap">
+        <div class="benchmark-bar" style="width:7%;background:var(--ac-red);border-radius:4px;"></div>
+        <div class="benchmark-marker" style="left:100%;"></div>
+      </div>
+      <div class="benchmark-values"><span class="tag tag-red">8%</span> vs 110%</div>
+    </div>
+    <div class="source-line">Source: Audited Financial Statements, FY2025 &nbsp;|&nbsp; Benchmark: Moody's A-rated health system medians &nbsp;|&nbsp; Amber dashes = benchmark target</div>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>7 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 8: QUALITATIVE INTELLIGENCE ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>What the Footnotes Reveal</h2></div>
+  <div class="slide-body">
+    <div class="callout-grid">
+      <div class="callout amber">
+        <h4>Government Payer Concentration: 50%</h4>
+        <p>Medicare (33%) + Medicaid (17%) = half of revenue from administratively-set rates. Limits pricing power and creates reimbursement risk from CMS policy changes.</p>
+      </div>
+      <div class="callout amber">
+        <h4>Commercial AR Mismatch</h4>
+        <p>Other commercial payers: 26% of revenue but 37% of AR ($388M). Suggests denial friction and slower collection — primary revenue cycle target.</p>
+      </div>
+      <div class="callout">
+        <h4>Georgetown Obligations: ~$40M/year</h4>
+        <p>Shared services ($20.5M), gain-sharing ($5M), conditional pledges ($15.1M). Fixed obligations regardless of operating performance. Affiliation extends to 2066.</p>
+      </div>
+      <div class="callout amber">
+        <h4>Self-Insurance Rising: $448M Accrued</h4>
+        <p>Professional liability retention up from $20M→$25M per claim. Workers' comp + employee health add $66M. Rising reserves signal increasing risk exposure in the MD/DC corridor.</p>
+      </div>
+    </div>
+    <div class="source-line">Source: Notes 7, 9, 11, 15 — Audited Financial Statements, FY2025</div>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>8 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 9: OPPORTUNITY SIZING ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>$250–400M in Addressable Annual Margin Improvement</h2></div>
+  <div class="slide-body">
+    <table class="data-table">
+      <thead>
+        <tr><th>Opportunity</th><th>Severity</th><th>Current State</th><th class="num">Est. Annual Impact</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Purchased services rationalization</td><td><span class="tag tag-red">HIGH</span></td><td>14.6% of OpEx ($1.28B) vs 12% benchmark</td><td class="num">$120–228M</td></tr>
+        <tr><td>Supply chain optimization</td><td><span class="tag tag-red">HIGH</span></td><td>16.9% of revenue ($1.52B), 9.5% CAGR</td><td class="num">$80–225M</td></tr>
+        <tr><td>Revenue cycle acceleration</td><td><span class="tag tag-amber">MED</span></td><td>51 days AR, commercial 37% of AR on 26% of rev</td><td class="num">$25–50M + $140M&sup1;</td></tr>
+        <tr><td>Operating efficiency</td><td><span class="tag tag-amber">MED</span></td><td>2.44% margin vs 3.5% A-rated median</td><td class="num">$90M per 1% pt</td></tr>
+        <tr><td>Capital planning</td><td><span class="tag tag-amber">MED</span></td><td>CapEx/Depr at 8% for 8 years</td><td class="num">$1.0–1.4B cumulative</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:var(--font-size-xs);color:var(--ac-gray-60);margin-top:10px;">&sup1; One-time cash release from AR reduction to 45 days. Ongoing annual improvement of $25–50M.</p>
+    <div class="source-line">Source: Analysis based on Audited Financial Statements, FY2018–FY2025. Sizing uses org-specific financial base and industry benchmarks.</div>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>9 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 10: ENGAGEMENT ROADMAP ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Recommended Engagement Approach</h2></div>
+  <div class="slide-body">
+    <div class="phase-row">
+      <div class="phase-block phase-1">
+        <h4>Phase 1: Quick Wins (0–6 mo)</h4>
+        <ul>
+          <li>Purchased services contract audit — top 50 vendors</li>
+          <li>Revenue cycle denial management — commercial payer focus</li>
+          <li>CareFirst BCBS contract review (18% of revenue)</li>
+          <li>Contract labor reduction program</li>
+        </ul>
+      </div>
+      <div class="phase-block phase-2">
+        <h4>Phase 2: Transformation (6–18 mo)</h4>
+        <ul>
+          <li>Supply chain analytics &amp; physician preference standardization</li>
+          <li>Service-line profitability analysis across 10 hospitals</li>
+          <li>Workforce productivity benchmarking</li>
+          <li>Working capital &amp; AR process reengineering</li>
+        </ul>
+      </div>
+      <div class="phase-block phase-3">
+        <h4>Phase 3: Strategic (18–36 mo)</h4>
+        <ul>
+          <li>Capital allocation framework &amp; facilities master plan</li>
+          <li>Operating model redesign &amp; shared services</li>
+          <li>Liquidity strategy &amp; rating agency engagement</li>
+          <li>Georgetown affiliation optimization</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout green" style="margin-top:8px;">
+      <h4>Expected Impact: $250–400M in annualized margin improvement, phased over 3 years</h4>
+      <p>Phase 1 quick wins typically yield 30–40% of total opportunity ($75–160M) within the first year, funded by engagement-generated savings.</p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>10 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 11: NEXT STEPS ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Proposed Next Steps</h2></div>
+  <div class="slide-body">
+    <ul class="insight-list">
+      <li><strong>Schedule a 90-minute leadership working session</strong> — Walk through the full analysis with CFO, COO, and VP Supply Chain. Validate assumptions and prioritize domains.</li>
+      <li><strong>Launch Phase 1 purchased services rapid assessment (4 weeks)</strong> — Analyze top 50 vendors by spend, benchmark pricing, identify consolidation and renegotiation targets. Deliverable: contract action plan with sized savings.</li>
+      <li><strong>Initiate revenue cycle diagnostic (6 weeks)</strong> — Focus on commercial payer denial root causes, CareFirst contract terms, and AR aging by payer class. Deliverable: denial reduction roadmap + cash acceleration forecast.</li>
+      <li><strong>Develop a comprehensive margin improvement business case</strong> — Combine Phase 1 findings into a board-ready investment case for the full 3-year transformation program.</li>
+    </ul>
+    <div class="callout green" style="margin-top:16px;">
+      <h4>We are prepared to begin immediately</h4>
+      <p>Our team has deep experience in health system performance improvement, with benchmarking data from 200+ comparable engagements. Phase 1 is designed to be self-funding through quick-win savings.</p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>11 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 12: BENCHMARK COMPARISON — IMPLICATIONS ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Benchmark Comparison: Five of Nine Key Ratios Fall Below A-Rated Thresholds</h2></div>
+  <div class="slide-body">
+    <table class="data-table" style="font-size:0.7rem;">
+      <thead>
+        <tr><th style="width:16%">Metric</th><th class="num" style="width:10%">MedStar</th><th class="num" style="width:10%">A-Rated</th><th style="width:8%">Status</th><th style="width:56%">What This Means for MedStar</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Operating Margin</td><td class="num">2.4%</td><td class="num">3.5%</td>
+          <td><span class="tag tag-red">Below</span></td>
+          <td>At $9B revenue, the 110bp gap = ~$100M in unrealized operating income. Thin margins leave zero buffer against cost shocks — FY2022's collapse to 1.1% demonstrated this fragility.</td>
+        </tr>
+        <tr>
+          <td>EBIDA Margin</td><td class="num">5.5%</td><td class="num">9.0%</td>
+          <td><span class="tag tag-red">Below</span></td>
+          <td>The primary metric for debt capacity and credit positioning. The 350bp gap limits ability to issue new debt for strategic investment. Constrains capital for M&A, facility renewal, and technology.</td>
+        </tr>
+        <tr>
+          <td>Days Cash</td><td class="num">122d</td><td class="num">225d</td>
+          <td><span class="tag tag-red">Below</span></td>
+          <td>At 122 days, a single disruption (pandemic, payer dispute, capital call) could trigger a liquidity crisis. Rating agencies view &lt;150 days as a negative outlier. Closing the gap requires ~$1.8B in additional liquid reserves.</td>
+        </tr>
+        <tr>
+          <td>Days in A/R</td><td class="num">51d</td><td class="num">48d</td>
+          <td><span class="tag tag-amber">Warning</span></td>
+          <td>Trending the wrong direction (from 42d in FY2018). Each day = $24.6M in tied-up cash. Commercial payers drive the friction — 37% of AR on 26% of revenue signals systematic denial and adjudication delays.</td>
+        </tr>
+        <tr>
+          <td>Debt / Cap</td><td class="num">28.5%</td><td class="num">33%</td>
+          <td><span class="tag tag-green">Strong</span></td>
+          <td>Best-in-class metric. The 450bp cushion below the A-rated ceiling provides strategic debt capacity of $300–400M for targeted capital deployment without triggering credit concerns.</td>
+        </tr>
+        <tr>
+          <td>CapEx / Depr</td><td class="num">8%</td><td class="num">110%</td>
+          <td><span class="tag tag-red">Critical</span></td>
+          <td>8 consecutive years below 35% = ~$1.4B in accumulated deferred maintenance. Physical plant is aging without reinvestment. This is a slow-building crisis that eventually becomes emergency capital need.</td>
+        </tr>
+        <tr>
+          <td>CF Margin</td><td class="num">2.0%</td><td class="num">7.0%</td>
+          <td><span class="tag tag-red">Critical</span></td>
+          <td>Generating $180M vs. $540–720M benchmark. Insufficient to fund debt service ($73M interest + $42M amortization), capital needs, and liquidity building simultaneously. Forces trade-off between investing and surviving.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="source-line">Source: Audited Financial Statements, FY2025 &nbsp;|&nbsp; Benchmarks: Moody's A-rated health system medians (2024 published data)</div>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>12 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ SLIDE 13: BENCHMARK GAPS → RECOMMENDATIONS ═══════════════════ -->
+<div class="slide-frame slide-content">
+  <div class="slide-header"><h2>Closing the Gaps: Each Benchmark Deficit Maps to a Specific Action</h2></div>
+  <div class="slide-body">
+    <table class="data-table" style="font-size:0.7rem;">
+      <thead>
+        <tr><th style="width:14%">Gap</th><th style="width:10%">Deficit</th><th style="width:38%">Recommended Action</th><th style="width:12%">Timeline</th><th class="num" style="width:14%">Est. Impact</th><th style="width:12%">Phase</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-red">Op. Margin</span></td><td>110bp</td>
+          <td>Purchased services rationalization + supply chain optimization — the two largest controllable cost categories</td>
+          <td>6–18 months</td><td class="num">$100–225M</td>
+          <td>Phase 1–2</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-red">EBIDA</span></td><td>350bp</td>
+          <td>Margin improvement program (operating leverage) + service-line profitability review to redirect volume to higher-margin services</td>
+          <td>12–24 months</td><td class="num">$90M per pt</td>
+          <td>Phase 2–3</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-red">Days Cash</span></td><td>103 days</td>
+          <td>Improve operating CF via margin gains + AR acceleration to release working capital. Rebalance investment portfolio for liquidity access.</td>
+          <td>12–36 months</td><td class="num">$140M release¹</td>
+          <td>Phase 2–3</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-amber">Days AR</span></td><td>3 days</td>
+          <td>Commercial payer denial management + CareFirst contract enforcement. Reducing to 45 days releases $148M in one-time cash.</td>
+          <td>0–12 months</td><td class="num">$25–50M/yr</td>
+          <td>Phase 1</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-red">CapEx/Depr</span></td><td>102pp</td>
+          <td>Develop facilities master plan + capital allocation framework. Use debt capacity headroom (28.5% debt/cap vs 33% ceiling) to fund priority projects.</td>
+          <td>18–36 months</td><td class="num">$1.0–1.4B plan</td>
+          <td>Phase 3</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-red">CF Margin</span></td><td>500bp</td>
+          <td>Composite outcome of margin improvement + working capital optimization + capex discipline. Not a separate initiative — it is the result of all other actions.</td>
+          <td>24–36 months</td><td class="num">+$350–450M</td>
+          <td>Phase 1–3</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:var(--font-size-xs);color:var(--ac-gray-60);margin-top:6px;">¹ One-time cash release from AR reduction to 45 days. &nbsp;|&nbsp; Debt/Cap and Labor % are already at or better than benchmark — protect these strengths.</p>
+    <div class="callout green" style="margin-top:8px;">
+      <h4>The path from 2.4% to 3.5% operating margin is a $100M journey — and MedStar has the balance sheet to invest in getting there</h4>
+      <p>Debt capacity headroom + eliminated pension liability + $2.1B investment portfolio = strategic flexibility to fund transformation without credit deterioration.</p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <img src="../../acuvance_coker_design_system/assets/acuvance-coker-logo-color.png" alt="Acuvance Coker">
+    <span>MedStar Health — Executive Summary</span>
+    <span>13 / 13</span>
+  </div>
+</div>
+
+<script>
+const acBlue = '#004BFF';
+const acDeepBlue = '#0C36B4';
+const acBlueMid = '#4A78FF';
+const acAmber = '#F4B73F';
+const acGreen = '#169873';
+const acRed = '#B83232';
+const acGray40 = '#E8E9EA';
+const acDark = '#22272D';
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { labels: { font: { family: 'Arial', size: 11 }, boxWidth: 12, padding: 12 } } },
+  scales: {
+    x: { grid: { display: false }, ticks: { font: { family: 'Arial', size: 11 }, color: acDark }, border: { display: false } },
+    y: { grid: { color: acGray40, drawBorder: false, borderDash: [4,4] }, ticks: { font: { family: 'Arial', size: 11 }, color: acDark }, border: { display: false } }
+  }
+};
+
+// CHART: Revenue + Margin combo
+new Chart(document.getElementById('chart-trajectory'), {
+  type: 'bar',
+  data: {
+    labels: ['FY2018','FY2019','FY2020','FY2021','FY2022','FY2023','FY2024','FY2025'],
+    datasets: [
+      {
+        label: 'Revenue ($B)',
+        data: [5.60, 5.69, 5.79, 6.73, 7.28, 7.74, 8.25, 8.97],
+        backgroundColor: acBlue,
+        borderRadius: 4,
+        maxBarThickness: 48,
+        yAxisID: 'y',
+        order: 2
+      },
+      {
+        label: 'Operating Margin %',
+        data: [2.87, 2.67, 2.27, 3.86, 1.11, 1.90, 1.93, 2.44],
+        type: 'line',
+        borderColor: acRed,
+        backgroundColor: 'transparent',
+        pointBackgroundColor: acRed,
+        pointRadius: 4,
+        borderWidth: 2.5,
+        yAxisID: 'y1',
+        order: 1
+      },
+      {
+        label: 'A-Rated Op Margin Median (3.5%)',
+        data: [3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5],
+        type: 'line',
+        borderColor: acAmber,
+        borderDash: [6, 4],
+        borderWidth: 2,
+        pointRadius: 0,
+        backgroundColor: 'transparent',
+        yAxisID: 'y1',
+        order: 0
+      }
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    plugins: {
+      ...chartDefaults.plugins,
+      legend: { position: 'top', align: 'end', labels: { font: { family: 'Arial', size: 10 }, boxWidth: 10, padding: 8 } }
+    },
+    scales: {
+      x: { ...chartDefaults.scales.x },
+      y: {
+        ...chartDefaults.scales.y,
+        position: 'left',
+        title: { display: true, text: 'Revenue ($B)', font: { family: 'Arial', size: 10 }, color: acDark },
+        min: 0, max: 10
+      },
+      y1: {
+        position: 'right',
+        grid: { display: false },
+        ticks: { font: { family: 'Arial', size: 11 }, color: acRed, callback: v => v + '%' },
+        border: { display: false },
+        title: { display: true, text: 'Operating Margin %', font: { family: 'Arial', size: 10 }, color: acRed },
+        min: 0, max: 6
+      }
+    }
+  }
+});
+
+// CHART: Cost structure trends
+new Chart(document.getElementById('chart-costs'), {
+  type: 'line',
+  data: {
+    labels: ['FY2018','FY2019','FY2020','FY2021','FY2022','FY2023','FY2024','FY2025'],
+    datasets: [
+      {
+        label: 'Labor % of Revenue',
+        data: [54.2, 56.5, 57.7, 54.9, 56.3, 55.9, 55.2, 54.3],
+        borderColor: acBlue,
+        backgroundColor: 'transparent',
+        pointBackgroundColor: acBlue,
+        pointRadius: 4,
+        borderWidth: 2.5
+      },
+      {
+        label: 'Supplies % of Revenue',
+        data: [14.4, 14.7, 14.3, 14.6, 15.2, 15.4, 16.3, 16.9],
+        borderColor: acRed,
+        backgroundColor: 'transparent',
+        pointBackgroundColor: acRed,
+        pointRadius: 4,
+        borderWidth: 2.5
+      },
+      {
+        label: 'Purchased Svcs % of OpEx',
+        data: [15.5, 13.8, 12.8, 15.4, 15.7, 15.9, 15.0, 14.6],
+        borderColor: acBlueMid,
+        backgroundColor: 'transparent',
+        pointBackgroundColor: acBlueMid,
+        pointRadius: 4,
+        borderWidth: 2.5
+      },
+      {
+        label: 'Benchmark: Purchased Svcs 12%',
+        data: [12, 12, 12, 12, 12, 12, 12, 12],
+        borderColor: acAmber,
+        borderDash: [6, 4],
+        borderWidth: 1.5,
+        pointRadius: 0,
+        backgroundColor: 'transparent'
+      }
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    plugins: {
+      legend: { position: 'top', align: 'end', labels: { font: { family: 'Arial', size: 9 }, boxWidth: 10, padding: 6 } }
+    },
+    scales: {
+      x: { ...chartDefaults.scales.x },
+      y: {
+        ...chartDefaults.scales.y,
+        min: 10, max: 60,
+        ticks: { ...chartDefaults.scales.y.ticks, callback: v => v + '%' }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>

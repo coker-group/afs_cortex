@@ -29,19 +29,29 @@ def extract_and_stage(session, filename: str) -> dict[str, Any]:
     sql = f"""
         SELECT
             SNOWFLAKE.CORTEX.PARSE_DOCUMENT(
-                @AUDITED_FINANCIALS.COMMON.AFS_STAGE/{filename},
-                OBJECT_CONSTRUCT('mode', 'LAYOUT')
+                '@AUDITED_FINANCIALS.COMMON.AFS_STAGE',
+                '{filename}',
+                OBJECT_CONSTRUCT('mode', 'LAYOUT', 'page_split', TRUE)
             )
     """
     row = session.sql(sql).collect()[0][0]
     parsed = json.loads(row) if isinstance(row, str) else row
 
-    pages: list[dict] = parsed.get("content", [])
-    # Normalise: ensure every item has {page, text}
-    page_texts = [
-        {"page": int(p.get("page", i + 1)), "text": str(p.get("text", ""))}
-        for i, p in enumerate(pages)
-    ]
+    raw_pages = parsed.get("pages", [])
+    if raw_pages:
+        page_texts = [
+            {"page": int(p.get("index", i)) + 1, "text": str(p.get("content", ""))}
+            for i, p in enumerate(raw_pages)
+        ]
+    else:
+        content = parsed.get("content", "")
+        if isinstance(content, list):
+            page_texts = [
+                {"page": int(p.get("page", i + 1)), "text": str(p.get("text", ""))}
+                for i, p in enumerate(content)
+            ]
+        else:
+            page_texts = [{"page": 1, "text": str(content)}]
     total_pages = len(page_texts)
 
     # filing_id: sha256 of concatenated text (stable across re-runs for same PDF)
